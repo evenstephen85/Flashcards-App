@@ -102,7 +102,7 @@ function resolveUserTheme(u) {
 }
 
 // ── Shared settings ───────────────────────────────────────────────────────────
-const DEFAULT_SHARED = { timer:{mode:"none",seconds:60}, scored:false, order:"alpha", cardCount:0 };
+const DEFAULT_SHARED = { timer:{mode:"none",seconds:60}, scored:false, order:"alpha", cardCount:0, algebra:"Off" };
 const getShared = u => ({...DEFAULT_SHARED,...(u?.sharedSettings||{})});
 const saveShared = (appState,activeUser,patch,persist) =>
   persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,sharedSettings:{...getShared(u),...patch}}:u)});
@@ -212,7 +212,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .greeting-body .hl3{color:var(--primary);font-weight:800;}
 .start-btn{width:100%;max-width:440px;padding:clamp(16px,4vmin,30px) 24px;background:var(--secondary);border:none;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,2.6rem);color:var(--bg);cursor:pointer;transition:transform .12s,filter .12s;margin-top:clamp(6px,2vmin,20px);}
 .start-btn:active{transform:scale(.97);filter:brightness(.92);}
-.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:clamp(10px,2vmin,24px) clamp(12px,3vmin,24px) clamp(12px,2vmin,20px);gap:clamp(6px,1.4vmin,14px);}
+.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(10px,2vmin,24px) clamp(12px,3vmin,24px) clamp(12px,2vmin,20px);gap:clamp(6px,1.4vmin,14px);}
 .name-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,3.2rem);color:var(--secondary);text-align:center;line-height:1.1;}
 .name-display{width:100%;background:var(--surface);border:2.5px solid var(--border2);border-radius:var(--r);padding:clamp(8px,2vmin,18px) 20px;font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,6vmin,4rem);height:clamp(64px,12vmin,108px);display:flex;align-items:center;letter-spacing:2px;cursor:text;flex-shrink:0;}
 .name-placeholder{color:var(--dim);font-family:var(--title);font-weight:var(--title-weight);font-size:inherit;letter-spacing:2px;}
@@ -221,12 +221,14 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .name-error{color:var(--red);font-size:clamp(.85rem,2vmin,1.1rem);font-weight:700;align-self:flex-start;width:100%;padding-left:4px;}
 .name-keyboard-area{display:flex;flex-direction:column;justify-content:flex-end;width:100%;flex-shrink:0;}
 .name-action-row{display:flex;flex-direction:row-reverse;gap:10px;width:100%;flex-shrink:0;margin-top:clamp(6px,1.5vmin,14px);margin-bottom:clamp(4px,1vmin,10px);}
-.name-done-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:var(--g-soft);border:2px solid var(--green);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.name-done-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:var(--g-soft);border:2px solid var(--green);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;opacity:1;}
+.name-done-btn svg,.name-done-btn span{opacity:1;}
 .name-done-btn:active{filter:brightness(.88);}
 .name-cancel-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:transparent;border:2px solid var(--border2);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 .name-cancel-btn:active{filter:brightness(.88);}
 .keyboard{width:100%;display:flex;flex-direction:column;gap:clamp(3px,.8vmin,8px);padding-bottom:clamp(4px,1vmin,12px);}
 .key-row{display:flex;gap:clamp(3px,.6vmin,7px);height:clamp(36px,calc((100vw - 30px) / 10),56px);flex-shrink:1;min-height:28px;}
+@media (orientation:landscape){.key-row{height:clamp(28px,calc((100vh - 200px) / 6),48px);min-height:24px;}}
 .key{flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--body);font-size:clamp(.8rem,2.5vmin,1.4rem);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
 .key:active{background:var(--p-mid);transform:scale(.93);}
 .key-wide{flex:1.7;}
@@ -259,8 +261,8 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .dialog-row.col{flex-direction:column;}
 .dbtn{flex:1;padding:clamp(11px,2.8vmin,18px) 10px;border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.95rem,2.8vmin,1.3rem);cursor:pointer;touch-action:manipulation;transition:background .12s,transform .1s;border:2px solid var(--border2);background:transparent;color:var(--dim);display:flex;align-items:center;justify-content:center;gap:7px;}
 .dbtn:active{transform:scale(.97);}
-.dbtn.p{background:var(--g-soft);border-color:var(--green);color:var(--green);}
-.dbtn.d{background:var(--r-soft);border-color:var(--red);color:var(--red);}
+.dbtn.p{background:var(--g-soft);border-color:var(--green);color:var(--green);opacity:1;}
+.dbtn.d{background:var(--r-soft);border-color:var(--red);color:var(--red);opacity:1;}
 .timer-mode-row{display:flex;gap:8px;width:100%;}
 .timer-mode-btn{flex:1;padding:clamp(12px,3vmin,22px) 6px;background:var(--bg);border:2px solid var(--border2);border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);color:var(--dim);cursor:pointer;touch-action:manipulation;transition:all .12s;text-align:center;font-size:inherit;}
 .timer-mode-btn.sel{background:var(--a-mid);border-color:var(--accent);color:var(--accent);}
@@ -283,12 +285,14 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .bar-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.4rem,4vmin,2.6rem);color:var(--secondary);flex-shrink:0;}
 .icon-btn{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:background .12s;flex-shrink:0;}
 .icon-btn:active{background:var(--press);}
+.icon-btn.home-btn{background:var(--a-soft);border-color:var(--accent);}
+.icon-btn.home-btn:active{background:var(--a-mid);}
 .mode-grid{flex:1;display:grid;min-height:0;padding:0 clamp(5px,1.2vmin,12px) clamp(6px,1.5vmin,14px);gap:clamp(4px,.8vmin,8px);grid-auto-rows:1fr;}
-.mode-btn{border-radius:var(--r);border:2px solid transparent;cursor:pointer;touch-action:manipulation;transition:transform .11s,filter .11s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;gap:1px;overflow:hidden;position:relative;min-height:0;min-width:0;}
+.mode-btn{border-radius:var(--r);border:2px solid var(--border2);background:var(--bg);cursor:pointer;touch-action:manipulation;transition:transform .11s,filter .11s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;gap:1px;overflow:hidden;position:relative;min-height:0;min-width:0;}
 .mode-btn:active{transform:scale(.95);filter:brightness(1.1);}
-.mode-bg{position:absolute;inset:0;border-radius:inherit;}
-.mode-label{font-family:var(--title);font-weight:var(--title-weight);line-height:1.05;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;}
-.mode-sub{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.85rem,2.5vmin,1.4rem);opacity:.85;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;}
+.mode-bg{position:absolute;inset:0;border-radius:inherit;display:none;}
+.mode-label{font-family:var(--title);font-weight:var(--title-weight);line-height:1.05;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;color:var(--accent);}
+.mode-sub{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.85rem,2.5vmin,1.4rem);text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;color:var(--dim);}
 .letsel-header{display:flex;flex-direction:column;flex-shrink:0;padding:clamp(5px,1.8vmin,14px) clamp(5px,1.2vmin,10px);gap:clamp(3px,.7vmin,7px);border-bottom:1px solid var(--border);}
 .letsel-row{display:flex;align-items:center;gap:clamp(3px,.5vmin,5px);}
 .letsel-title{font-family:var(--title);font-weight:var(--title-weight);color:var(--secondary);margin-right:auto;flex-shrink:0;}
@@ -297,7 +301,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .pill-row1{display:flex;align-items:center;justify-content:center;}
 .pill-row2{font-family:var(--title);font-weight:var(--title-weight);}
 .letter-grid{flex:1;display:grid;min-height:0;align-content:start;overflow:hidden;}
-.tile{border-radius:var(--r);border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s,border-color .12s,color .12s;font-family:var(--title);font-weight:var(--title-weight);line-height:1;color:var(--dim);min-width:0;min-height:0;overflow:hidden;}
+.tile{border-radius:var(--r);border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s,border-color .12s,color .12s;font-family:var(--title);font-weight:var(--title-weight);line-height:1;color:var(--dim);min-width:0;min-height:0;overflow:hidden;aspect-ratio:1;}
 .tile:active{transform:scale(.91);}
 .tile.sel{background:var(--s-mid);border-color:var(--secondary);color:var(--secondary);font-weight:700;}
 .tile-wide{grid-column:span 2;}
@@ -309,6 +313,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .tile.ctrl-all{border-color:var(--accent);color:var(--dim);background:var(--a-soft);}
 .letsel-actions{display:flex;align-items:stretch;gap:clamp(5px,1.2vmin,12px);padding:clamp(8px,2.5vmin,20px) clamp(8px,2vmin,16px);flex-shrink:0;border-top:1px solid var(--border);}
 .footer-btn{flex:1;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);cursor:pointer;touch-action:manipulation;transition:transform .12s,filter .12s;display:flex;align-items:center;justify-content:center;gap:clamp(4px,1vmin,8px);border:2px solid var(--border2);background:var(--surface);color:var(--dim);}
+.footer-btn.home{background:var(--a-soft);border-color:var(--accent);color:var(--accent);}
 .footer-btn:active{transform:scale(.97);}
 .footer-btn.go{background:var(--secondary);border-color:var(--secondary);color:var(--bg);}
 .footer-btn.go:disabled{opacity:.32;cursor:default;}
@@ -364,6 +369,7 @@ input[type=color]{opacity:0;position:absolute;width:0;height:0;}
 .theme-item-actions{display:flex;gap:4px;flex-shrink:0;}
 .theme-icon-btn{background:transparent;border:none;padding:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;touch-action:manipulation;}
 .reset-btn{width:100%;padding:clamp(13px,3vmin,20px) 24px;background:var(--r-soft);border:2px solid var(--red);border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.1rem,3.5vmin,1.8rem);color:var(--red);cursor:pointer;touch-action:manipulation;transition:background .12s,transform .1s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.reset-btn svg,.reset-btn span{opacity:1;}
 .reset-btn:active{background:var(--r-mid);transform:scale(.97);}
 .generic-back{background:transparent;border:2px solid var(--accent);border-radius:50px;padding:clamp(12px,3vmin,20px) clamp(28px,5vmin,52px);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3vmin,1.6rem);color:var(--accent);cursor:pointer;touch-action:manipulation;}
 .generic-back:active{background:var(--a-soft);}
@@ -384,8 +390,10 @@ input[type=color]{opacity:0;position:absolute;width:0;height:0;}
 .score-bar-side{display:flex;flex-direction:column;gap:clamp(5px,1vmin,10px);padding:clamp(6px,1.5vmin,12px);flex-shrink:0;border-left:1px solid var(--border);}
 .score-btn{border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);cursor:pointer;touch-action:manipulation;transition:transform .1s;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
 .score-btn:active{transform:scale(.94);}
-.score-btn.correct{background:var(--g-mid);border-color:var(--green);color:var(--green);}
-.score-btn.wrong{background:var(--r-mid);border-color:var(--red);color:var(--red);}
+.score-btn.correct{background:var(--g-mid);border-color:var(--green);color:var(--green);opacity:1;}
+.score-btn.correct svg,.score-btn.correct span{opacity:1;}
+.score-btn.wrong{background:var(--r-mid);border-color:var(--red);color:var(--red);opacity:1;}
+.score-btn.wrong svg,.score-btn.wrong span{opacity:1;}
 .score-btn.skip{background:var(--s-soft);border-color:var(--secondary);color:var(--secondary);}
 .score-btn.back{background:var(--surface);border-color:var(--border2);color:var(--dim);}
 .score-btn-sym{line-height:1;}
@@ -399,7 +407,7 @@ input[type=color]{opacity:0;position:absolute;width:0;height:0;}
 .score-actions{display:flex;gap:clamp(6px,1.5vmin,12px);width:100%;max-width:520px;}
 .score-action-btn{flex:1;padding:clamp(12px,3vmin,22px) 6px;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.9rem,3vmin,1.5rem);cursor:pointer;touch-action:manipulation;transition:transform .12s;display:flex;align-items:center;justify-content:center;gap:7px;border:2px solid transparent;}
 .score-action-btn:active{transform:scale(.97);}
-.score-action-btn.retry{background:var(--primary);border-color:var(--primary);color:var(--bg);}
+.score-action-btn.retry{background:var(--p-soft);border-color:var(--primary);color:var(--primary);}
 .score-action-btn.select{background:transparent;border-color:var(--secondary);color:var(--secondary);}
 .score-action-btn.home{background:transparent;border-color:var(--accent);color:var(--accent);}
 .placeholder-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px 32px;}
@@ -502,7 +510,6 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
           </div>
           {error&&<p className="name-error">{error}</p>}
         </div>
-        <div style={{flex:1,minHeight:0,maxHeight:"15vh"}}/>
         <div className="name-keyboard-area">
           <Keyboard onChar={handleChar} onDelete={handleDelete} onDone={handleDone} isShift={isShift} onShiftPress={handleShiftPress} hideDone={true}/>
           <div className="name-action-row">
@@ -609,6 +616,7 @@ function GreetingScreen({onContinue}){
       <div className="greeting-wrap">
         <div className="greeting-top">
           <div className="app-title">Flashcards+</div>
+          <div className="app-tagline">The free, fast way to learn with your child</div>
           <div className="hdivider"/>
           <p className="greeting-body">
             <span className="hl2">No ads.</span> <span className="hl2">No tracking.</span> <span className="hl2">No cost</span> — ever.<br/><br/>
@@ -660,13 +668,12 @@ function HomeScreen({userName,onMode,onSwitchUser,onSettings}){
         <button className="icon-btn" style={{width:btnSz,height:btnSz,zIndex:1}} onClick={onSettings}><Ico.gear sz={iSz} c="var(--accent)"/></button>
       </div>
       <div className="mode-grid" style={{gridTemplateColumns:`repeat(${cols},1fr)`}}>
-        {MODES.map(m=>{const color=portrait?m.portrait:m.landscape;return(
-          <button key={m.id} className="mode-btn" style={{borderColor:tca(color,.38)}} onClick={()=>onMode(m.id)}>
-            <div className="mode-bg" style={{background:tca(color,.13)}}/>
-            <span className="mode-label" style={{fontSize:lf(m.label),color:tc(color)}}>{m.label}</span>
-            <span className="mode-sub"   style={{color:tc(color)}}>{m.sub}</span>
+        {MODES.map(m=>
+          <button key={m.id} className="mode-btn" onClick={()=>onMode(m.id)}>
+            <span className="mode-label" style={{fontSize:lf(m.label)}}>{m.label}</span>
+            <span className="mode-sub">{m.sub}</span>
           </button>
-        );})}
+        )}
       </div>
     </div>
   );
@@ -765,7 +772,7 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
           }
           const sel=curSel.has(l);
           items.push(
-            <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1rem,4vmin,2rem)"}} onClick={()=>toggleL(l)}>
+            <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1.4rem,7vmin,3rem)"}} onClick={()=>toggleL(l)}>
               {caseMode==="upper"?l:l.toLowerCase()}
             </button>
           );
@@ -774,7 +781,7 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
         <button key="ctrl-all" className="tile tile-wide ctrl-all" style={{fontSize:"clamp(1rem,4vmin,2rem)"}} onClick={toggleAll}>{allCur?"None":"All"}</button>
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--surface)",border:"1.5px solid var(--border2)",borderRadius:"50px",padding:`${pPV*2}px ${Math.round(uiFP*.8)}px`,fontFamily:"var(--body)",fontWeight:700,color:"var(--dim)",whiteSpace:"nowrap",fontSize:clamp(Math.round(uiFP*.85),13,24)}}><b style={{color:"var(--secondary)"}}>{total}</b>&nbsp;/ 52</div>
         <button className="footer-btn go" style={{fontSize:uiFP,padding:`${pPV*2}px 16px`}} onClick={handleGo} disabled={total===0}><Ico.flag sz={hISz} c="var(--bg)"/>Go!</button>
       </div>
@@ -830,7 +837,7 @@ function NumberSelectionScreen({onGo,onHome,activeUser,appState,persist}){
         </div>
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--surface)",border:"1.5px solid var(--border2)",borderRadius:"50px",padding:`${pPV*2}px ${Math.round(uiFP*.8)}px`,fontFamily:"var(--body)",fontWeight:700,color:"var(--dim)",whiteSpace:"nowrap",fontSize:clamp(Math.round(uiFP*.85),13,24)}}><b style={{color:"var(--secondary)"}}>{total}</b>&nbsp;/ 101</div>
         <button className="footer-btn go" style={{fontSize:uiFP,padding:`${pPV*2}px 16px`}} onClick={handleGo} disabled={total===0}><Ico.flag sz={hISz} c="var(--bg)"/>Go!</button>
       </div>
@@ -888,7 +895,7 @@ function SightWordsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
         })}
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <button className="footer-btn" style={{fontSize:uiFP*.8,padding:`${pPV}px 10px`}} onClick={cycleSort}>{sortLabel}</button>
         <button className="footer-btn" style={{fontSize:uiFP*.8,padding:`${pPV}px 10px`}} onClick={toggleAll}>{allSel?"None":"All"}</button>
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--surface)",border:"1.5px solid var(--border2)",borderRadius:"50px",padding:`${pPV*2}px ${Math.round(uiFP*.8)}px`,fontFamily:"var(--body)",fontWeight:700,color:"var(--dim)",whiteSpace:"nowrap",fontSize:clamp(Math.round(uiFP*.85),13,24)}}><b style={{color:"var(--secondary)"}}>{total}</b>&nbsp;/ {SIGHT_WORDS.length}</div>
@@ -922,12 +929,15 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const toggleL=l=>{const n=new Set(selLetters);n.has(l)?n.delete(l):n.add(l);setSelLetters(n);savePhon(n);};
   const toggleAll=()=>{const n=allSel?new Set():new Set(ALPHABET);setSelLetters(n);savePhon(n);};
   const generateDeck=(count)=>{
-    const deck=[];
-    for(let i=0;i<count;i++){
+    const deck=[];const seen=new Set();let attempts=0;
+    while(deck.length<count&&attempts<count*20){
+      attempts++;
       const c1=selConsonants[Math.floor(Math.random()*selConsonants.length)];
       const v=selVowels[Math.floor(Math.random()*selVowels.length)];
       const c2=selConsonants[Math.floor(Math.random()*selConsonants.length)];
-      deck.push({label:(c1+v+c2).toLowerCase()});
+      const label=(c1+v+c2).toLowerCase();
+      if(seen.has(label))continue;
+      seen.add(label);deck.push({label});
     }
     return deck;
   };
@@ -955,12 +965,12 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
         {[...VOWELS,...CONSONANTS].map(l=>{
           const sel=selLetters.has(l);
           const isVowel=VOWELS.includes(l);
-          return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1rem,4vmin,2rem)",borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{l.toLowerCase()}</button>;
+          return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1.4rem,7vmin,3rem)",borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{l.toLowerCase()}</button>;
         })}
         <button className="tile ctrl-all" style={{fontSize:"clamp(1rem,4vmin,2rem)",gridColumn:`span ${Math.min(cols,4)}`}} onClick={toggleAll}>{allSel?"None":"All"}</button>
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--surface)",border:"1.5px solid var(--border2)",borderRadius:"var(--pill)",padding:`${pPV*2}px ${Math.round(uiFP*1.2)}px`,fontFamily:"var(--body)",fontWeight:700,color:"var(--dim)",whiteSpace:"nowrap",fontSize:clamp(Math.round(uiFP*.7),11,20),gap:8}}>
           <span style={{color:"var(--accent)"}}>{selVowels.length}V</span>
           <span style={{color:"var(--secondary)"}}>{selConsonants.length}C</span>
@@ -984,8 +994,15 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
 }
 
 // ── Math helpers ─────────────────────────────────────────────────────────────
-const ALGEBRA_SYMBOLS = ["Off","x","a","N","□","Random"];
-const ALL_ALGEBRA_DISPLAY = ["x","a","N","□"];
+const BOX_SYM = "\u25FB";
+const ALGEBRA_SYMBOLS = ["Off","X","a","N",BOX_SYM,"Random"];
+const ALL_ALGEBRA_DISPLAY = ["X","a","N",BOX_SYM];
+
+function CardLabel({text,fontSize}){
+  if(!text.includes(BOX_SYM)) return <span className="card-letter" style={{fontSize}}>{text}</span>;
+  const parts=text.split(BOX_SYM);
+  return <span className="card-letter" style={{fontSize}}>{parts.map((p,i)=><React.Fragment key={i}>{p}{i<parts.length-1&&<span style={{display:"inline-block",width:"1.15em",height:"1.15em",border:"3px solid currentColor",borderRadius:"3px",verticalAlign:"middle",marginLeft:"0.05em",marginRight:"0.05em"}}>&nbsp;</span>}</React.Fragment>)}</span>;
+}
 
 function applyAlgebra(a,op,b,answer,algebraMode){
   if(algebraMode==="Off") return `${a} ${op} ${b} = ?`;
@@ -1007,38 +1024,49 @@ function makeExample(a,op,b,answer,algebraMode,forcePos){
 function highestFactor(n){ for(let i=Math.floor(n/2);i>=2;i--){if(n%i===0)return i;} return 1; }
 
 function buildAdditionDeck(lo,hi,count,alg){
-  const deck=[];
-  for(let i=0;i<count;i++){
+  const deck=[];const seen=new Set();let attempts=0;
+  while(deck.length<count&&attempts<count*20){
+    attempts++;
     const sum=Math.floor(Math.random()*(hi-lo+1))+lo;
     const a=Math.floor(Math.random()*(sum+1));
     const b=sum-a;
-    deck.push({label:applyAlgebra(a,"+",b,sum,alg),answer:sum});
+    const label=applyAlgebra(a,"+",b,sum,alg);
+    if(seen.has(label))continue;
+    seen.add(label);deck.push({label,answer:sum});
   }
   return deck;
 }
 
 function buildSubtractionDeck(lo,hi,count,alg,allowNeg){
-  const deck=[];
-  for(let i=0;i<count;i++){
+  const deck=[];const seen=new Set();let attempts=0;
+  while(deck.length<count&&attempts<count*20){
+    attempts++;
     const a=Math.floor(Math.random()*(hi-lo+1))+lo;
     const b=Math.floor(Math.random()*(hi-lo+1))+lo;
+    let label,ans;
     if(allowNeg){
-      const ans=a-b;
-      deck.push({label:applyAlgebra(a,"−",b,ans,alg),answer:ans});
+      ans=a-b;
+      label=applyAlgebra(a,"−",b,ans,alg);
     } else {
       const big=Math.max(a,b),small=Math.min(a,b);
-      deck.push({label:applyAlgebra(big,"−",small,big-small,alg),answer:big-small});
+      ans=big-small;
+      label=applyAlgebra(big,"−",small,ans,alg);
     }
+    if(seen.has(label))continue;
+    seen.add(label);deck.push({label,answer:ans});
   }
   return deck;
 }
 
 function buildMultiplicationDeck(lo,hi,count,alg){
-  const deck=[];
-  for(let i=0;i<count;i++){
+  const deck=[];const seen=new Set();let attempts=0;
+  while(deck.length<count&&attempts<count*20){
+    attempts++;
     const a=Math.floor(Math.random()*(hi-lo+1))+lo;
     const b=Math.floor(Math.random()*(hi-lo+1))+lo;
-    deck.push({label:applyAlgebra(a,"×",b,a*b,alg),answer:a*b});
+    const label=applyAlgebra(a,"×",b,a*b,alg);
+    if(seen.has(label))continue;
+    seen.add(label);deck.push({label,answer:a*b});
   }
   return deck;
 }
@@ -1052,7 +1080,7 @@ function buildTimesTableDeck(n,alg){
 }
 
 function buildDivisionDeck(lo,hi,count,alg){
-  const deck=[];
+  const deck=[];const seen=new Set();
   let attempts=0;
   while(deck.length<count&&attempts<count*100){
     attempts++;
@@ -1063,12 +1091,32 @@ function buildDivisionDeck(lo,hi,count,alg){
     const divisor=Math.floor(Math.random()*(hf-1))+2;
     if(dividend%divisor!==0)continue;
     const q=dividend/divisor;
-    deck.push({label:applyAlgebra(dividend,"÷",divisor,q,alg),answer:q});
+    const label=applyAlgebra(dividend,"÷",divisor,q,alg);
+    if(seen.has(label))continue;
+    seen.add(label);deck.push({label,answer:q});
   }
   while(deck.length<count){
     const d=Math.floor(Math.random()*9)+2;
     const q=Math.floor(Math.random()*10)+1;
-    deck.push({label:applyAlgebra(d*q,"÷",d,q,alg),answer:q});
+    const label=applyAlgebra(d*q,"÷",d,q,alg);
+    if(seen.has(label)){continue;}
+    seen.add(label);deck.push({label,answer:q});
+  }
+  return deck;
+}
+
+function buildDivisionRemainderDeck(lo,hi,count,alg){
+  const deck=[];const seen=new Set();let attempts=0;
+  while(deck.length<count&&attempts<count*20){
+    attempts++;
+    const dividend=Math.floor(Math.random()*(hi-lo+1))+lo;
+    if(dividend<3)continue;
+    const divisor=Math.floor(Math.random()*(Math.min(dividend-1,hi)-2+1))+2;
+    const q=Math.floor(dividend/divisor);
+    const r=dividend%divisor;
+    const label=applyAlgebra(dividend,"÷",divisor,r>0?`${q} R${r}`:`${q}`,alg);
+    if(seen.has(label))continue;
+    seen.add(label);deck.push({label,answer:r>0?`${q} R${r}`:`${q}`});
   }
   return deck;
 }
@@ -1083,13 +1131,14 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
     addition:{lo:1,hi:20,alg:"Off"},
     subtraction:{lo:5,hi:20,alg:"Off",allowNeg:false},
     multiplication:{lo:0,hi:12,alg:"Off",timesTable:false},
-    division:{lo:2,hi:50,alg:"Off"},
+    division:{lo:2,hi:50,alg:"Off",allowRemainder:false},
   }[modeId];
   const[lo,setLo]=useState(ms.lo??defs.lo);
   const[hi,setHi]=useState(ms.hi??defs.hi);
-  const[alg,setAlg]=useState(ms.alg||defs.alg);
+  const[alg,setAlg]=useState(shared.algebra||ms.alg||defs.alg);
   const[allowNeg,setAllowNeg]=useState(ms.allowNeg??defs.allowNeg??false);
   const[timesTable,setTimesTable]=useState(ms.timesTable??defs.timesTable??false);
+  const[allowRemainder,setAllowRemainder]=useState(ms.allowRemainder??defs.allowRemainder??false);
   const[showAlgPicker,setShowAlgPicker]=useState(false);
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
@@ -1114,24 +1163,31 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
     else if(modeId==="subtraction") deck=buildSubtractionDeck(lo,hi,count,alg,allowNeg);
     else if(modeId==="multiplication"&&timesTable) deck=buildTimesTableDeck(hi,alg);
     else if(modeId==="multiplication") deck=buildMultiplicationDeck(lo,hi,count,alg);
+    else if(modeId==="division"&&allowRemainder) deck=buildDivisionRemainderDeck(lo,hi,count,alg);
     else deck=buildDivisionDeck(lo,hi,count,alg);
     if(modeId==="multiplication"&&timesTable&&shared.order==="random") deck=deck.sort(()=>Math.random()-.5);
-    onGo({deck,mode:modeId,lo,hi,alg,allowNeg,timesTable,deckSize:count});
+    onGo({deck,mode:modeId,lo,hi,alg,allowNeg,timesTable,allowRemainder,deckSize:count});
   };
   const ex1=(()=>{
     if(modeId==="addition"){const a=lo,b=lo+1;return makeExample(a,"+",b,a+b,alg,0);}
-    if(modeId==="subtraction"){const a=lo,b=Math.max(1,hi-4);if(allowNeg){const r=a-b;return makeExample(a,"\u2212",b,r,alg,0);}return makeExample(Math.max(a,b),"\u2212",Math.min(a,b),Math.abs(a-b),alg,0);}
+    if(modeId==="subtraction"){const a=Math.max(1,hi-4),b=lo;if(allowNeg){return makeExample(a,"\u2212",b,a-b,alg,0);}return makeExample(Math.max(a,b),"\u2212",Math.min(a,b),Math.abs(a-b),alg,0);}
     if(modeId==="multiplication"&&timesTable) return makeExample(hi,"\u00d7",1,hi,alg,0);
     if(modeId==="multiplication"){return makeExample(lo,"\u00d7",hi,lo*hi,alg,0);}
-    if(modeId==="division"){const hf=highestFactor(Math.max(lo,2));return makeExample(Math.max(lo,2),"\u00f7",Math.max(hf,1),hf>0?Math.max(lo,2)/hf:1,alg,0);}
+    if(modeId==="division"){
+      if(allowRemainder){const d=Math.max(lo,4),dv=3,q=Math.floor(d/dv),r=d%dv;return makeExample(d,"\u00f7",dv,r>0?`${q} R${r}`:q,alg,0);}
+      const hf=highestFactor(Math.max(lo,2));return makeExample(Math.max(lo,2),"\u00f7",Math.max(hf,1),hf>0?Math.max(lo,2)/hf:1,alg,0);
+    }
     return "";
   })();
   const ex2=(()=>{
     if(modeId==="addition"){const a=Math.round(hi*3/4),b=Math.round(hi/4);return makeExample(a,"+",b,a+b,alg,2);}
-    if(modeId==="subtraction"){let a=Math.round(hi*2/3),b=Math.round(hi/3);if(allowNeg){[a,b]=[b,a];}return makeExample(a,"\u2212",b,a-b,alg,2);}
+    if(modeId==="subtraction"){let a=Math.round(hi*2/3),b=Math.round(hi/3);if(allowNeg){return makeExample(b,"\u2212",a,b-a,alg,2);}return makeExample(a,"\u2212",b,a-b,alg,2);}
     if(modeId==="multiplication"&&timesTable) return makeExample(hi,"\u00d7",12,hi*12,alg,2);
     if(modeId==="multiplication"){let a=clamp(Math.round(hi/2+1),lo,hi),b=clamp(Math.round(hi/3+2),lo,hi);return makeExample(a,"\u00d7",b,a*b,alg,2);}
-    if(modeId==="division"){const hf=highestFactor(Math.max(hi,4));return makeExample(Math.max(hi,4),"\u00f7",Math.max(hf,1),hf>0?Math.max(hi,4)/hf:1,alg,2);}
+    if(modeId==="division"){
+      if(allowRemainder){let d=Math.max(hi,7),dv=4;while(d%dv===0&&dv>2)dv--;const q=Math.floor(d/dv),r=d%dv;return makeExample(d,"\u00f7",dv,r>0?`${q} R${r}`:`${q}`,alg,2);}
+      const hf=highestFactor(Math.max(hi,4));return makeExample(Math.max(hi,4),"\u00f7",Math.max(hf,1),hf>0?Math.max(hi,4)/hf:1,alg,2);
+    }
     return "";
   })();
   const uiFP=clamp(Math.round(vminPx(portrait?3.5:2.4)),12,28);
@@ -1164,6 +1220,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
           <button style={alg!=="Off"?optBtnActiveStyle:optBtnStyle} onClick={()=>setShowAlgPicker(true)}>Algebra: {alg}</button>
           {modeId==="subtraction"&&<button style={allowNeg?optBtnActiveStyle:optBtnStyle} onClick={()=>{setAllowNeg(!allowNeg);saveMath({allowNeg:!allowNeg});}}>Negatives: {allowNeg?"On":"Off"}</button>}
           {modeId==="multiplication"&&<button style={timesTable?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!timesTable;setTimesTable(v);saveMath({timesTable:v});if(v&&hi>12)setHi(12);}}>Times Table: {timesTable?"On":"Off"}</button>}
+          {modeId==="division"&&<button style={allowRemainder?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!allowRemainder;setAllowRemainder(v);saveMath({allowRemainder:v});}}>Remainder: {allowRemainder?"Yes":"No"}</button>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"center"}}>
           <div style={{fontFamily:"var(--body)",fontWeight:600,fontSize:uiFP*.7,color:"var(--dim)"}}>Examples:</div>
@@ -1172,7 +1229,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
         </div>
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <button className="footer-btn go" style={{fontSize:uiFP,padding:`${pPV*2}px 16px`}} onClick={handleGo}><Ico.flag sz={hISz} c="var(--bg)"/>Go!</button>
       </div>
       {showAlgPicker&&(
@@ -1181,7 +1238,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
             <div className="dialog-title">Algebra Mode</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,width:"100%"}}>
               {ALGEBRA_SYMBOLS.map(s=>(
-                <button key={s} onClick={()=>{setAlg(s);saveMath({alg:s});setShowAlgPicker(false);}} style={{padding:"clamp(12px,3vmin,20px) 8px",borderRadius:"var(--r)",border:`2px solid ${alg===s?"var(--accent)":"var(--border2)"}`,background:alg===s?"var(--a-mid)":"var(--surface)",color:alg===s?"var(--accent)":"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(1rem,3vmin,1.5rem)",cursor:"pointer",textAlign:"center"}}>{s}</button>
+                <button key={s} onClick={()=>{setAlg(s);saveMath({alg:s});saveS({algebra:s});setShowAlgPicker(false);}} style={{padding:"clamp(12px,3vmin,20px) 8px",borderRadius:"var(--r)",border:`2px solid ${alg===s?"var(--accent)":"var(--border2)"}`,background:alg===s?"var(--a-mid)":"var(--surface)",color:alg===s?"var(--accent)":"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(1rem,3vmin,1.5rem)",cursor:"pointer",textAlign:"center"}}>{s}</button>
               ))}
             </div>
           </div>
@@ -1214,7 +1271,7 @@ function GenericSelectionScreen({title,onHome,activeUser,appState,persist,onGo,m
         <p className="placeholder-body">The {title} mode will be available in a future update.</p>
       </div>
       <div className="letsel-actions">
-        <button className="footer-btn" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--dim)"/>Home</button>
+        <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
         <button className="footer-btn go" style={{fontSize:uiFP,padding:`${pPV*2}px 16px`,opacity:.35,cursor:"default"}}><Ico.flag sz={hISz} c="var(--bg)"/>Go!</button>
       </div>
       {showTimer&&<TimerDialog timer={shared.timer} onSave={t=>{saveS({timer:t});setShowTimer(false);}} onCancel={()=>setShowTimer(false)} fs={uiFP}/>}
@@ -1257,8 +1314,11 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   },[scores,index,total,elapsed,interacted,finish,onBackToSelection]);
   const card=deck[index];
   const maxLabelLen=Math.max(...deck.map(c=>c.label.length));
-  const baseFS=Math.round(Math.min(vh*(portrait?.65:.6),vw*(portrait?.75:.65))*.7);
-  const cFS=maxLabelLen<=2?baseFS:Math.round(Math.min(baseFS, vw*(portrait?.85:.55)/maxLabelLen*1.6));
+  const cardH=vh*(portrait?0.65:0.6)-(scored?0:0);
+  const cardW=vw*(portrait?0.85:scored?0.55:0.85);
+  const fitH=cardH*0.8;
+  const fitW=cardW*0.8/(maxLabelLen*0.6);
+  const cFS=Math.round(Math.min(fitH,fitW));
   const iSz=clamp(Math.round(vminPx(portrait?4.5:3.8)),20,32);const btnSz=iSz+18;
   const isW=timerCfg.mode==="down"&&elapsed<=5;
   const sfP=portrait?clamp(Math.round(vminPx(3.5)),14,24):clamp(Math.round(vminPx(3.0)),12,20);
@@ -1272,11 +1332,11 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
     <div className="round-screen" style={{flexDirection:"row"}}>
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div className="round-topbar">
-          <button className="icon-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--dim)"/></button>
+          <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
           <div className="round-progress">{index+1} / {total}</div>
           {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
         </div>
-        <div className="card-area no-tap" style={{flex:1}}><div className="flashcard"key={index}><span className="card-letter"style={{fontSize:cFS}}>{card.label}</span></div></div>
+        <div className="card-area no-tap" style={{flex:1}}><div className="flashcard"key={index}><CardLabel text={card.label} fontSize={cFS}/></div></div>
       </div>
       {sideBar}
     </div>
@@ -1284,12 +1344,12 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   return(
     <div className="round-screen">
       <div className="round-topbar">
-        <button className="icon-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--dim)"/></button>
+        <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
         <div className="round-progress">{index+1} / {total}</div>
         {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
       </div>
       <div className="round-body col"onPointerDown={advanceFree}>
-        <div className={`card-area${scored?" no-tap":""}`}><div className="flashcard"key={index}><span className="card-letter"style={{fontSize:cFS}}>{card.label}</span></div></div>
+        <div className={`card-area${scored?" no-tap":""}`}><div className="flashcard"key={index}><CardLabel text={card.label} fontSize={cFS}/></div></div>
       </div>
       {portrait&&scored&&portBar}
     </div>
@@ -1327,7 +1387,7 @@ function ScoreScreen({scoreData,onRetry,onHome,onSelectAgain}){
         </div>
         <div className="score-actions">
           <button className="score-action-btn select"onClick={onSelectAgain}><Ico.back sz={18}c="var(--secondary)"/>{MODE_LABELS[mode]||"Select"}</button>
-          <button className="score-action-btn retry" onClick={onRetry}><Ico.retry sz={18}c="var(--bg)"/>Try Again</button>
+          <button className="score-action-btn retry" onClick={onRetry}><Ico.retry sz={18}c="var(--primary)"/>Try Again</button>
           <button className="score-action-btn home"  onClick={onHome}><Ico.home sz={18}c="var(--accent)"/>Home</button>
         </div>
       </div>
@@ -1362,7 +1422,7 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
   const rSz=clamp(Math.round(vminPx(2.5)),12,20);const eSz=clamp(Math.round(vminPx(2.8)),14,22);
   return(
     <div className="screen">
-      <div className="top-bar"><div style={{width:btnSz}}/><div className="bar-title" style={{fontSize:"clamp(1.8rem,5vmin,3.2rem)"}}>Settings</div><button className="icon-btn"style={{width:btnSz,height:btnSz}}onClick={onBack}><Ico.home sz={iSz}c="var(--dim)"/></button></div>
+      <div className="top-bar"><div style={{width:btnSz}}/><div className="bar-title" style={{fontSize:"clamp(1.8rem,5vmin,3.2rem)"}}>Settings</div><button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onClick={onBack}><Ico.home sz={iSz}c="var(--accent)"/></button></div>
       <div className="settings-scroll">
         <div className="settings-section">
           <div className="settings-label">Game Settings</div>
@@ -1542,12 +1602,15 @@ export default function App(){
       const sv=VOWELS.filter(v=>sl.has(v));
       const sc=CONSONANTS.filter(c=>sl.has(c));
       const count=cfg.deckSize||20;
-      deck=[];
-      for(let i=0;i<count;i++){
+      deck=[];const seen=new Set();let att=0;
+      while(deck.length<count&&att<count*20){
+        att++;
         const c1=sc[Math.floor(Math.random()*sc.length)];
         const v=sv[Math.floor(Math.random()*sv.length)];
         const c2=sc[Math.floor(Math.random()*sc.length)];
-        deck.push({label:(c1+v+c2).toLowerCase()});
+        const label=(c1+v+c2).toLowerCase();
+        if(seen.has(label))continue;
+        seen.add(label);deck.push({label});
       }
     } else if(cfg.mode==="addition"){
       deck=buildAdditionDeck(cfg.lo||1,cfg.hi||20,cfg.deckSize||20,cfg.alg||"Off");
@@ -1557,6 +1620,8 @@ export default function App(){
       deck=buildTimesTableDeck(cfg.hi||5,cfg.alg||"Off");
     } else if(cfg.mode==="multiplication"){
       deck=buildMultiplicationDeck(cfg.lo||0,cfg.hi||12,cfg.deckSize||20,cfg.alg||"Off");
+    } else if(cfg.mode==="division"&&cfg.allowRemainder){
+      deck=buildDivisionRemainderDeck(cfg.lo||2,cfg.hi||50,cfg.deckSize||20,cfg.alg||"Off");
     } else if(cfg.mode==="division"){
       deck=buildDivisionDeck(cfg.lo||2,cfg.hi||50,cfg.deckSize||20,cfg.alg||"Off");
     } else {
