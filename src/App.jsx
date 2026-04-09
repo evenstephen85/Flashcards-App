@@ -59,6 +59,60 @@ const luminance  = h => { const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.sli
 const clampByte  = n => Math.max(0,Math.min(255,Math.round(n)));
 const shiftHex   = (h,dr,dg,db) => { const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return `#${clampByte(r+dr).toString(16).padStart(2,"0")}${clampByte(g+dg).toString(16).padStart(2,"0")}${clampByte(b+db).toString(16).padStart(2,"0")}`; };
 
+// HSB <-> Hex
+function hsbToHex(h,s,b){
+  s/=100;b/=100;const k=n=>(n+h/60)%6;
+  const f=n=>b-b*s*Math.max(0,Math.min(k(n),4-k(n),1));
+  return `#${[f(5),f(3),f(1)].map(v=>clampByte(v*255).toString(16).padStart(2,"0")).join("")}`;
+}
+function hexToHsb(hex){
+  const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let h=0;if(d){if(mx===r)h=60*((g-b)/d%6);else if(mx===g)h=60*((b-r)/d+2);else h=60*((r-g)/d+4);}
+  if(h<0)h+=360;
+  const s=mx?d/mx*100:0;
+  return{h:Math.round(h),s:Math.round(s),b:Math.round(mx*100)};
+}
+function brightnessToSB(n){
+  if(n<=10)return{s:0,b:n*5};
+  if(n<=25)return{s:(n-10)*6.66,b:50-2.5*(n-10)};
+  if(n<=75)return{s:100,b:1.75*(n-25)+12.5};
+  if(n<=90)return{s:100-6.66*(n-75),b:100-3.33*(n-75)};
+  return{s:0,b:50+5*(n-90)};
+}
+function sbToBrightness(s,b){
+  // reverse: find closest N
+  let best=0,bestD=Infinity;
+  for(let n=0;n<=100;n++){const{s:ts,b:tb}=brightnessToSB(n);const d=Math.abs(ts-s)+Math.abs(tb-b);if(d<bestD){bestD=d;best=n;}}
+  return best;
+}
+
+function ColorPickerSliders({value,onChange}){
+  const hsb=hexToHsb(value);
+  const[hue,setHue]=useState(hsb.h);
+  const[bright,setBright]=useState(()=>sbToBrightness(hsb.s,hsb.b));
+  const apply=(h,n)=>{const{s,b}=brightnessToSB(n);const hex=hsbToHex(h,s,b);onChange(hex);};
+  const handleHue=e=>{const h=Number(e.target.value);setHue(h);apply(h,bright);};
+  const handleBright=e=>{const n=Number(e.target.value);setBright(n);apply(hue,n);};
+  const{s:curS,b:curB}=brightnessToSB(bright);
+  const previewColor=hsbToHex(hue,curS,curB);
+  const hueGrad="linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)";
+  const brightGrad=(()=>{const stops=[];for(let n=0;n<=100;n+=5){const{s,b}=brightnessToSB(n);stops.push(hsbToHex(hue,s,b));}return`linear-gradient(to right,${stops.join(",")})`;})();
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%"}}>
+      <div style={{width:clamp(44,vminPx(9),66),height:clamp(44,vminPx(9),66),borderRadius:"var(--r)",border:"2px solid var(--border2)",background:previewColor,alignSelf:"center"}}/>
+      <div style={{position:"relative",height:28}}>
+        <div style={{position:"absolute",inset:0,borderRadius:14,background:hueGrad,pointerEvents:"none"}}/>
+        <input type="range"min="0"max="359"value={hue}onChange={handleHue}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+      </div>
+      <div style={{position:"relative",height:28}}>
+        <div style={{position:"absolute",inset:0,borderRadius:14,background:brightGrad,pointerEvents:"none"}}/>
+        <input type="range"min="0"max="100"value={bright}onChange={handleBright}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+      </div>
+    </div>
+  );
+}
+
 function deriveTheme(p) {
   const lum = luminance(p);
   const dark = lum < 0.5;
@@ -150,6 +204,7 @@ const Ico = {
   shuffle: ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.2"strokeLinecap="round"strokeLinejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4"y1="20"x2="21"y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15"y1="15"x2="21"y2="21"/><line x1="4"y1="4"x2="9"y2="9"/></svg>,
   card:    ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2"strokeLinecap="round"strokeLinejoin="round"><rect x="3"y="4"width="18"height="16"rx="2"fill={c}fillOpacity=".15"/><rect x="3"y="4"width="18"height="16"rx="2"/><line x1="7"y1="10"x2="17"y2="10"/><line x1="7"y1="14"x2="14"y2="14"/></svg>,
   back:    ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.2"strokeLinecap="round"strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  list:    ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.2"strokeLinecap="round"strokeLinejoin="round"><line x1="8"y1="6"x2="21"y2="6"/><line x1="8"y1="12"x2="21"y2="12"/><line x1="8"y1="18"x2="21"y2="18"/><line x1="3"y1="6"x2="3.01"y2="6"/><line x1="3"y1="12"x2="3.01"y2="12"/><line x1="3"y1="18"x2="3.01"y2="18"/></svg>,
   flag:    ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.2"strokeLinecap="round"strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"fill={c}fillOpacity=".25"/><line x1="4"y1="22"x2="4"y2="15"/></svg>,
   check:   ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.8"strokeLinecap="round"strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   x:       ({sz,c="currentColor"})=><svg width={sz}height={sz}viewBox="0 0 24 24"fill="none"stroke={c}strokeWidth="2.8"strokeLinecap="round"strokeLinejoin="round"><line x1="18"y1="6"x2="6"y2="18"/><line x1="6"y1="6"x2="18"y2="18"/></svg>,
@@ -212,14 +267,14 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .greeting-body .hl3{color:var(--primary);font-weight:800;}
 .start-btn{width:100%;max-width:440px;padding:clamp(16px,4vmin,30px) 24px;background:var(--secondary);border:none;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,2.6rem);color:var(--bg);cursor:pointer;transition:transform .12s,filter .12s;margin-top:clamp(6px,2vmin,20px);}
 .start-btn:active{transform:scale(.97);filter:brightness(.92);}
-.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(10px,2vmin,24px) clamp(12px,3vmin,24px) clamp(12px,2vmin,20px);gap:clamp(6px,1.4vmin,14px);}
+.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(10px,2vmin,24px) clamp(12px,3vmin,24px) 0;gap:clamp(6px,1.4vmin,14px);}
 .name-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,3.2rem);color:var(--secondary);text-align:center;line-height:1.1;}
 .name-display{width:100%;background:var(--surface);border:2.5px solid var(--border2);border-radius:var(--r);padding:clamp(8px,2vmin,18px) 20px;font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,6vmin,4rem);height:clamp(64px,12vmin,108px);display:flex;align-items:center;letter-spacing:2px;cursor:text;flex-shrink:0;}
 .name-placeholder{color:var(--dim);font-family:var(--title);font-weight:var(--title-weight);font-size:inherit;letter-spacing:2px;}
 .text-cursor{display:inline-block;width:3px;height:.85em;background:var(--secondary);margin-left:1px;vertical-align:middle;animation:blink 1s step-end infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .name-error{color:var(--red);font-size:clamp(.85rem,2vmin,1.1rem);font-weight:700;align-self:flex-start;width:100%;padding-left:4px;}
-.name-keyboard-area{display:flex;flex-direction:column;justify-content:flex-end;width:100%;flex-shrink:0;}
+.name-keyboard-area{display:flex;flex-direction:column;justify-content:flex-end;width:100%;flex-shrink:0;margin-top:auto;}
 .name-action-row{display:flex;flex-direction:row-reverse;gap:10px;width:100%;flex-shrink:0;margin-top:clamp(6px,1.5vmin,14px);margin-bottom:clamp(4px,1vmin,10px);}
 .name-done-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:var(--g-soft);border:2px solid var(--green);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;opacity:1;}
 .name-done-btn svg,.name-done-btn span{opacity:1;}
@@ -227,8 +282,8 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .name-cancel-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:transparent;border:2px solid var(--border2);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 .name-cancel-btn:active{filter:brightness(.88);}
 .keyboard{width:100%;display:flex;flex-direction:column;gap:clamp(3px,.8vmin,8px);padding-bottom:clamp(4px,1vmin,12px);}
-.key-row{display:flex;gap:clamp(3px,.6vmin,7px);height:clamp(36px,calc((100vw - 30px) / 10),56px);flex-shrink:1;min-height:28px;}
-@media (orientation:landscape){.key-row{height:clamp(28px,calc((100vh - 200px) / 6),48px);min-height:24px;}}
+.key-row{display:flex;gap:clamp(3px,.6vmin,7px);height:calc((100vw - 60px) / 10);flex-shrink:1;min-height:28px;}
+@media (orientation:landscape){.key-row{height:calc(min((100vw - 60px) / 10, (100vh - 200px) / 6));}}
 .key{flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--body);font-size:clamp(.8rem,2.5vmin,1.4rem);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
 .key:active{background:var(--p-mid);transform:scale(.93);}
 .key-wide{flex:1.7;}
@@ -237,6 +292,18 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .done-row{flex:1;min-height:0;max-height:calc((100vw - 24px) / 10);display:flex;}
 .key-done{flex:1;background:var(--p-mid);border:2px solid var(--primary);border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--primary);cursor:pointer;touch-action:manipulation;transition:background .1s;}
 .key-done:active{background:var(--p-bold);}
+.numpad{width:100%;max-width:320px;display:flex;flex-direction:column;gap:clamp(4px,.8vmin,8px);margin:0 auto;}
+.numpad-row{display:flex;gap:clamp(4px,.8vmin,8px);}
+.numpad-key{flex:1;aspect-ratio:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.2rem,4vmin,2rem);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
+.numpad-key:active{background:var(--p-mid);transform:scale(.93);}
+.numpad-neg{color:var(--red);font-size:clamp(1.5rem,5vmin,2.5rem);font-weight:900;}
+.numpad-check{background:var(--g-soft);border-color:var(--green);color:var(--green);font-size:clamp(1.5rem,5vmin,2.5rem);}
+.numpad-check:active{background:var(--green);color:#fff;}
+.answer-input-box{display:inline-block;min-width:1.5em;padding:0 .15em;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);font-family:var(--title);font-weight:var(--title-weight);}
+.answer-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(2rem,8vmin,4rem);padding:clamp(8px,2vmin,16px) clamp(16px,4vmin,32px);border-radius:var(--r);z-index:10;animation:feedPop .4s ease-out;}
+.answer-feedback.correct{color:var(--green);background:var(--g-soft);}
+.answer-feedback.wrong{color:var(--red);background:var(--r-soft);}
+@keyframes feedPop{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}50%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 .uselect-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(12px,2.5vmin,28px) clamp(14px,3.5vmin,40px);gap:clamp(10px,2vmin,20px);}
 .uselect-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,7vmin,4.5rem);color:var(--secondary);text-align:center;}
 .user-grid{display:grid;width:100%;gap:clamp(6px,1.2vmin,12px);overflow-y:auto;flex:1;align-content:start;}
@@ -288,11 +355,11 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .icon-btn.home-btn{background:var(--a-soft);border-color:var(--accent);}
 .icon-btn.home-btn:active{background:var(--a-mid);}
 .mode-grid{flex:1;display:grid;min-height:0;padding:0 clamp(5px,1.2vmin,12px) clamp(6px,1.5vmin,14px);gap:clamp(4px,.8vmin,8px);grid-auto-rows:1fr;}
-.mode-btn{border-radius:var(--r);border:2px solid var(--border2);background:var(--bg);cursor:pointer;touch-action:manipulation;transition:transform .11s,filter .11s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;gap:1px;overflow:hidden;position:relative;min-height:0;min-width:0;}
+.mode-btn{border-radius:var(--r);border:2px solid transparent;cursor:pointer;touch-action:manipulation;transition:transform .11s,filter .11s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;gap:1px;overflow:hidden;position:relative;min-height:0;min-width:0;}
 .mode-btn:active{transform:scale(.95);filter:brightness(1.1);}
-.mode-bg{position:absolute;inset:0;border-radius:inherit;display:none;}
-.mode-label{font-family:var(--title);font-weight:var(--title-weight);line-height:1.05;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;color:var(--accent);}
-.mode-sub{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.85rem,2.5vmin,1.4rem);text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;color:var(--dim);}
+.mode-bg{position:absolute;inset:0;border-radius:inherit;}
+.mode-label{font-family:var(--title);font-weight:var(--title-weight);line-height:1.05;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;}
+.mode-sub{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(.85rem,2.5vmin,1.4rem);opacity:.85;text-align:center;position:relative;z-index:1;overflow:hidden;max-width:100%;}
 .letsel-header{display:flex;flex-direction:column;flex-shrink:0;padding:clamp(5px,1.8vmin,14px) clamp(5px,1.2vmin,10px);gap:clamp(3px,.7vmin,7px);border-bottom:1px solid var(--border);}
 .letsel-row{display:flex;align-items:center;gap:clamp(3px,.5vmin,5px);}
 .letsel-title{font-family:var(--title);font-weight:var(--title-weight);color:var(--secondary);margin-right:auto;flex-shrink:0;}
@@ -301,7 +368,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .pill-row1{display:flex;align-items:center;justify-content:center;}
 .pill-row2{font-family:var(--title);font-weight:var(--title-weight);}
 .letter-grid{flex:1;display:grid;min-height:0;align-content:start;overflow:hidden;}
-.tile{border-radius:var(--r);border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s,border-color .12s,color .12s;font-family:var(--title);font-weight:var(--title-weight);line-height:1;color:var(--dim);min-width:0;min-height:0;overflow:hidden;aspect-ratio:1;}
+.tile{border-radius:var(--r);border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s,border-color .12s,color .12s;font-family:var(--title);font-weight:var(--title-weight);line-height:1;color:var(--dim);min-width:0;min-height:0;overflow:hidden;}
 .tile:active{transform:scale(.91);}
 .tile.sel{background:var(--s-mid);border-color:var(--secondary);color:var(--secondary);font-weight:700;}
 .tile-wide{grid-column:span 2;}
@@ -539,7 +606,7 @@ function TimerDialog({timer,onSave,onCancel,fs=22}){
   const[mode,setMode]=useState(timer.mode);
   const[secs,setSecs]=useState(timer.seconds||60);
   const handleSlider=e=>setSecs(Number(e.target.value));
-  const nudge=d=>setSecs(s=>clamp(s+d,5,300));
+  const nudge=d=>setSecs(s=>clamp(s+d,5,120));
   return(
     <div className="dialog-overlay" onPointerDown={e=>{if(e.target===e.currentTarget)onCancel();}}>
       <div className="dialog-box">
@@ -555,9 +622,9 @@ function TimerDialog({timer,onSave,onCancel,fs=22}){
             <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.8,color:"var(--accent)",textAlign:"center",minWidth:fs*4}}>{fmtTime(secs)}</div>
             <button onClick={()=>nudge(1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
           </div>
-          <input type="range" min="5" max="300" value={secs} onChange={handleSlider} className="dialog-slider"/>
+          <input type="range" min="5" max="120" value={secs} onChange={handleSlider} className="dialog-slider"/>
           <div className="dialog-slider-labels" style={{fontSize:fs*.7}}>
-            <span>:05</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span><span>5:00</span>
+            <span>:05</span><span>:30</span><span>1:00</span><span>1:30</span><span>2:00</span>
           </div>
         </div>
         <div className="dialog-row">
@@ -573,12 +640,12 @@ function TimerDialog({timer,onSave,onCancel,fs=22}){
 function CardCountDialog({count,totalSelected,onSave,onCancel,fs=22}){
   const[val,setVal]=useState(count||0);
   const isAll=val===0;
-  const sliderVal=isAll?101:val;
-  const handleSlider=e=>{const raw=Number(e.target.value);setVal(raw>=101?0:raw);};
+  const sliderVal=isAll?26:val;
+  const handleSlider=e=>{const raw=Number(e.target.value);setVal(raw>=26?0:raw);};
   const nudge=d=>{
-    if(isAll&&d<0){setVal(100);return;}
-    if(!isAll){const n=val+d;if(n>100){setVal(0);return;}setVal(clamp(n,5,100));return;}
-    setVal(clamp(5+d,5,100));
+    if(isAll&&d<0){setVal(25);return;}
+    if(!isAll){const n=val+d;if(n>25){setVal(0);return;}setVal(clamp(n,5,25));return;}
+    setVal(clamp(5+d,5,25));
   };
   return(
     <div className="dialog-overlay" onPointerDown={e=>{if(e.target===e.currentTarget)onCancel();}}>
@@ -590,9 +657,9 @@ function CardCountDialog({count,totalSelected,onSave,onCancel,fs=22}){
             <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*2,color:"var(--accent)",textAlign:"center",minWidth:fs*4}}>{isAll?"All":val}</div>
             <button onClick={()=>nudge(1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
           </div>
-          <input type="range" min="5" max="101" value={sliderVal} onChange={handleSlider} className="dialog-slider"/>
+          <input type="range" min="5" max="26" value={sliderVal} onChange={handleSlider} className="dialog-slider"/>
           <div className="dialog-slider-labels" style={{fontSize:fs*.7}}>
-            <span>5</span><span>25</span><span>50</span><span>75</span><span>All</span>
+            <span>5</span><span>10</span><span>15</span><span>20</span><span>All</span>
           </div>
         </div>
         <div className="dialog-row">
@@ -620,7 +687,7 @@ function GreetingScreen({onContinue}){
           <div className="hdivider"/>
           <p className="greeting-body">
             <span className="hl2">No ads.</span> <span className="hl2">No tracking.</span> <span className="hl2">No cost</span> — ever.<br/><br/>
-            A learning app designed to be used <span className="hl">together with a parent</span>, just like real flashcards, but less shuffling.
+            A <span className="hl">fun</span> learning app designed to be used <span className="hl">together with a parent</span>, just like real flashcards.
           </p>
         </div>
         <button className="start-btn" onClick={onContinue}>Get Started</button>
@@ -659,7 +726,7 @@ function HomeScreen({userName,onMode,onSwitchUser,onSettings}){
   const portrait=usePortrait();useViewport();
   const cols=portrait?2:4;
   const iSz=clamp(Math.round(vminPx(portrait?4.5:3.8)),20,36);const btnSz=iSz+20;
-  const lf=l=>{const n=l.length;if(portrait){if(n<=7)return"clamp(1.6rem,6vh,4rem)";if(n<=11)return"clamp(1.2rem,4.5vh,3rem)";return"clamp(1rem,3.5vh,2.3rem)";}if(n<=7)return"clamp(1.3rem,4vw,2.8rem)";if(n<=11)return"clamp(1.1rem,3vw,2.2rem)";return"clamp(.95rem,2.3vw,1.8rem)";};
+  const lf=l=>{const n=l.length;if(portrait){if(n<=7)return"clamp(1.6rem,6vh,4rem)";if(n<=11)return"clamp(1.2rem,4.5vh,3rem)";return"clamp(1rem,3.5vh,2.3rem)";}if(n<=7)return"clamp(1.6rem,5.5vw,3.5rem)";if(n<=11)return"clamp(1.3rem,4vw,2.8rem)";return"clamp(1.1rem,3vw,2.2rem)";};
   return(
     <div className="screen">
       <div className="top-bar" style={{position:"relative"}}>
@@ -668,12 +735,12 @@ function HomeScreen({userName,onMode,onSwitchUser,onSettings}){
         <button className="icon-btn" style={{width:btnSz,height:btnSz,zIndex:1}} onClick={onSettings}><Ico.gear sz={iSz} c="var(--accent)"/></button>
       </div>
       <div className="mode-grid" style={{gridTemplateColumns:`repeat(${cols},1fr)`}}>
-        {MODES.map(m=>
-          <button key={m.id} className="mode-btn" onClick={()=>onMode(m.id)}>
-            <span className="mode-label" style={{fontSize:lf(m.label)}}>{m.label}</span>
-            <span className="mode-sub">{m.sub}</span>
+        {MODES.map(m=>{const color=portrait?m.portrait:m.landscape;return(
+          <button key={m.id} className="mode-btn" style={{borderColor:tc(color),background:tca(color,.15)}} onClick={()=>onMode(m.id)}>
+            <span className="mode-label" style={{fontSize:lf(m.label),color:tc(color)}}>{m.label}</span>
+            <span className="mode-sub"   style={{color:tc(color)}}>{m.sub}</span>
           </button>
-        )}
+        );})}
       </div>
     </div>
   );
@@ -751,34 +818,33 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const pH=uiFP*2+pPV*2+4;
   const pW=Math.max(iSz*2,Math.ceil("2:22".length*uiFP*.6))+Math.round(uiFP*.5)*2+8;
   const hISz=clamp(Math.round(vminPx(portrait?4.5:3.0)),18,32);
+  const {vw,vh}=useViewport();
   const cols=portrait?5:10;
   const gap=Math.max(3,Math.round(vminPx(0.6)));
-  const gp=Math.max(4,Math.round(vminPx(1.1)));
+  const tileTarget=portrait?Math.floor((vw-40)/5):Math.floor((vw-40)/10);
+  const rows=portrait?6:3;
+  const availH=vh-200;
+  const tileH=Math.min(tileTarget,Math.floor((availH-gap*(rows-1))/rows));
+  const gridW=tileH*cols+gap*(cols-1);
+  const tileFontSz=Math.round(tileH*0.55);
   return(
     <div className="screen">
       <div><SelectionHeader title="Letters" shared={shared} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={()=>saveS({order:shared.order==="alpha"?"random":"alpha"})} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz}/></div>
-      <div style={{flex:1,display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gridAutoRows:"1fr",gap:gap,padding:gp,minHeight:0,alignContent:"start",overflow:"hidden"}}>
-        {ALPHABET.map((l,i)=>{
-          const CI=portrait?25:20;
-          const items=[];
-          if(i===CI){
-            items.push(
-              <div key="ctrl-case" className="tile tile-wide case-tile" style={{fontSize:"clamp(0.9rem,3vmin,1.5rem)"}} onClick={toggleCase}>
-                <div className={`case-half${caseMode==="upper"?" active-half":""}`}>&#9650;</div>
-                <div className="case-divider"/>
-                <div className={`case-half${caseMode==="lower"?" active-half":""}`}>&#9660;</div>
-              </div>
-            );
-          }
-          const sel=curSel.has(l);
-          items.push(
-            <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1.4rem,7vmin,3rem)"}} onClick={()=>toggleL(l)}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"4px 8px"}}>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
+          {ALPHABET.map(l=>{
+            const sel=curSel.has(l);
+            return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH}} onClick={()=>toggleL(l)}>
               {caseMode==="upper"?l:l.toLowerCase()}
-            </button>
-          );
-          return items;
-        }).flat()}
-        <button key="ctrl-all" className="tile tile-wide ctrl-all" style={{fontSize:"clamp(1rem,4vmin,2rem)"}} onClick={toggleAll}>{allCur?"None":"All"}</button>
+            </button>;
+          })}
+          <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={toggleCase}>
+            <div className={`case-half${caseMode==="upper"?" active-half":""}`}>&#9650;</div>
+            <div className="case-divider"/>
+            <div className={`case-half${caseMode==="lower"?" active-half":""}`}>&#9660;</div>
+          </div>
+          <button key="ctrl-all" className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:`span ${cols-2}`,height:tileH}} onClick={toggleAll}>{allCur?"None":"All"}</button>
+        </div>
       </div>
       <div className="letsel-actions">
         <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
@@ -914,10 +980,12 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const shared=getShared(user);
   const ps=user?.phonicsSettings||{};
   const[selLetters,setSelLetters]=useState(()=>new Set(Array.isArray(ps.selLetters)?ps.selLetters:ALPHABET));
+  const[phonicsCase,setPhonicsCase]=useState(ps.phonicsCase||"lower");
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
   const[showMinWarn,setShowMinWarn]=useState(false);
-  const savePhon=sel=>persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,phonicsSettings:{selLetters:[...sel]}}:u)});
+  const savePhon=(sel,pc)=>persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,phonicsSettings:{selLetters:[...sel],phonicsCase:pc||phonicsCase}}:u)});
+  const togglePhonicsCase=()=>{const nc=phonicsCase==="lower"?"upper":"lower";setPhonicsCase(nc);savePhon(selLetters,nc);};
   const saveS=p=>saveShared(appState,activeUser,p,persist);
   useEffect(()=>{
     if(shared.cardCount===0)saveS({cardCount:20});
@@ -926,8 +994,8 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const allSel=total===26;
   const selVowels=VOWELS.filter(v=>selLetters.has(v));
   const selConsonants=CONSONANTS.filter(c=>selLetters.has(c));
-  const toggleL=l=>{const n=new Set(selLetters);n.has(l)?n.delete(l):n.add(l);setSelLetters(n);savePhon(n);};
-  const toggleAll=()=>{const n=allSel?new Set():new Set(ALPHABET);setSelLetters(n);savePhon(n);};
+  const toggleL=l=>{const n=new Set(selLetters);n.has(l)?n.delete(l):n.add(l);setSelLetters(n);savePhon(n,phonicsCase);};
+  const toggleAll=()=>{const n=allSel?new Set():new Set(ALPHABET);setSelLetters(n);savePhon(n,phonicsCase);};
   const generateDeck=(count)=>{
     const deck=[];const seen=new Set();let attempts=0;
     while(deck.length<count&&attempts<count*20){
@@ -935,7 +1003,8 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
       const c1=selConsonants[Math.floor(Math.random()*selConsonants.length)];
       const v=selVowels[Math.floor(Math.random()*selVowels.length)];
       const c2=selConsonants[Math.floor(Math.random()*selConsonants.length)];
-      const label=(c1+v+c2).toLowerCase();
+      const raw=c1+v+c2;
+      const label=phonicsCase==="upper"?raw.toUpperCase():raw.toLowerCase();
       if(seen.has(label))continue;
       seen.add(label);deck.push({label});
     }
@@ -946,9 +1015,10 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
     const cc=shared.cardCount;
     const count=cc>0?cc:20;
     const deck=generateDeck(count);
-    onGo({deck,mode:"phonics",selLetters:[...selLetters],deckSize:count});
+    onGo({deck,mode:"phonics",selLetters:[...selLetters],deckSize:count,phonicsCase});
   };
-  const handleCCSave=cc=>{const v=cc===0?20:clamp(cc,5,100);saveS({cardCount:v});setShowCC(false);};
+  const handleCCSave=cc=>{const v=cc===0?20:clamp(cc,5,25);saveS({cardCount:v});setShowCC(false);};
+  const {vw,vh}=useViewport();
   const uiFP=clamp(Math.round(vminPx(portrait?3.5:2.4)),12,28);
   const iSz=clamp(Math.round(uiFP*.9),10,24);
   const pPV=clamp(Math.round(uiFP*.28),3,7);
@@ -957,17 +1027,30 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const hISz=clamp(Math.round(vminPx(portrait?4.5:3.0)),18,32);
   const cols=portrait?5:10;
   const gap=Math.max(3,Math.round(vminPx(0.6)));
-  const gp=Math.max(4,Math.round(vminPx(1.1)));
+  const phonicLetters=[...VOWELS,...CONSONANTS];
+  const tileTarget=portrait?Math.floor((vw-40)/5):Math.floor((vw-40)/10);
+  const rows=portrait?6:3;
+  const availH=vh-200;
+  const tileH=Math.min(tileTarget,Math.floor((availH-gap*(rows-1))/rows));
+  const gridW=tileH*cols+gap*(cols-1);
+  const tileFontSz=Math.round(tileH*0.55);
   return(
     <div className="screen">
       <div><SelectionHeader title="Phonics" shared={{...shared,order:"random"}} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={()=>{}} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz} hideShuffle/></div>
-      <div style={{flex:1,display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gridAutoRows:"1fr",gap:gap,padding:gp,minHeight:0,alignContent:"start",overflow:"hidden"}}>
-        {[...VOWELS,...CONSONANTS].map(l=>{
-          const sel=selLetters.has(l);
-          const isVowel=VOWELS.includes(l);
-          return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:"clamp(1.4rem,7vmin,3rem)",borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{l.toLowerCase()}</button>;
-        })}
-        <button className="tile ctrl-all" style={{fontSize:"clamp(1rem,4vmin,2rem)",gridColumn:`span ${Math.min(cols,4)}`}} onClick={toggleAll}>{allSel?"None":"All"}</button>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"4px 8px"}}>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
+          {phonicLetters.map(l=>{
+            const sel=selLetters.has(l);
+            const isVowel=VOWELS.includes(l);
+            return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH,borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{phonicsCase==="upper"?l:l.toLowerCase()}</button>;
+          })}
+          <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={togglePhonicsCase}>
+            <div className={`case-half${phonicsCase==="upper"?" active-half":""}`}>&#9650;</div>
+            <div className="case-divider"/>
+            <div className={`case-half${phonicsCase==="lower"?" active-half":""}`}>&#9660;</div>
+          </div>
+          <button className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:`span ${cols-2}`,height:tileH}} onClick={toggleAll}>{allSel?"None":"All"}</button>
+        </div>
       </div>
       <div className="letsel-actions">
         <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
@@ -1002,6 +1085,24 @@ function CardLabel({text,fontSize}){
   if(!text.includes(BOX_SYM)) return <span className="card-letter" style={{fontSize}}>{text}</span>;
   const parts=text.split(BOX_SYM);
   return <span className="card-letter" style={{fontSize}}>{parts.map((p,i)=><React.Fragment key={i}>{p}{i<parts.length-1&&<span style={{display:"inline-block",width:"1.15em",height:"1.15em",border:"3px solid currentColor",borderRadius:"3px",verticalAlign:"middle",marginLeft:"0.05em",marginRight:"0.05em"}}>&nbsp;</span>}</React.Fragment>)}</span>;
+}
+
+// ── Numpad for answer entry ──────────────────────────────────────────────────
+function Numpad({onKey,onNeg,onCheck}){
+  const rows=[[1,2,3],[4,5,6],[7,8,9],["neg",0,"check"]];
+  return(
+    <div className="numpad">
+      {rows.map((row,ri)=>(
+        <div className="numpad-row" key={ri}>
+          {row.map(k=>{
+            if(k==="neg") return <button key={k} className="numpad-key numpad-neg" onPointerDown={e=>{e.preventDefault();onNeg();}}>−</button>;
+            if(k==="check") return <button key={k} className="numpad-key numpad-check" onPointerDown={e=>{e.preventDefault();onCheck();}}>✓</button>;
+            return <button key={k} className="numpad-key" onPointerDown={e=>{e.preventDefault();onKey(String(k));}}>{k}</button>;
+          })}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function applyAlgebra(a,op,b,answer,algebraMode){
@@ -1139,6 +1240,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const[allowNeg,setAllowNeg]=useState(ms.allowNeg??defs.allowNeg??false);
   const[timesTable,setTimesTable]=useState(ms.timesTable??defs.timesTable??false);
   const[allowRemainder,setAllowRemainder]=useState(ms.allowRemainder??defs.allowRemainder??false);
+  const[answerEntry,setAnswerEntry]=useState(ms.answerEntry??false);
   const[showAlgPicker,setShowAlgPicker]=useState(false);
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
@@ -1148,7 +1250,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const handleLo=e=>{const v=Math.min(Number(e.target.value),hi);setLo(v);saveMath({lo:v});};
   const handleHi=e=>{const v=Math.max(Number(e.target.value),lo);setHi(v);saveMath({hi:v});};
   const handleSingle=e=>{const v=Number(e.target.value);setHi(v);saveMath({hi:v});};
-  const handleCCSave=cc=>{const v=cc===0?20:clamp(cc,5,100);saveS({cardCount:v});setShowCC(false);};
+  const handleCCSave=cc=>{const v=cc===0?20:clamp(cc,5,25);saveS({cardCount:v});setShowCC(false);};
   const sliderMin={addition:1,subtraction:5,multiplication:0,division:2}[modeId];
   const sliderMax={addition:100,subtraction:100,multiplication:12,division:100}[modeId];
   const question = modeId==="addition"?"What range of sums?"
@@ -1166,7 +1268,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
     else if(modeId==="division"&&allowRemainder) deck=buildDivisionRemainderDeck(lo,hi,count,alg);
     else deck=buildDivisionDeck(lo,hi,count,alg);
     if(modeId==="multiplication"&&timesTable&&shared.order==="random") deck=deck.sort(()=>Math.random()-.5);
-    onGo({deck,mode:modeId,lo,hi,alg,allowNeg,timesTable,allowRemainder,deckSize:count});
+    onGo({deck,mode:modeId,lo,hi,alg,allowNeg,timesTable,allowRemainder,answerEntry,deckSize:count});
   };
   const ex1=(()=>{
     if(modeId==="addition"){const a=lo,b=lo+1;return makeExample(a,"+",b,a+b,alg,0);}
@@ -1199,7 +1301,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const showShuffle=modeId==="multiplication"&&timesTable;
   const leftPct=isDual?((lo-sliderMin)/(sliderMax-sliderMin))*100:0;
   const rightPct=((hi-sliderMin)/(sliderMax-sliderMin))*100;
-  const optBtnStyle={padding:"clamp(8px,2vmin,14px) clamp(12px,3vmin,20px)",borderRadius:"var(--pill)",border:"2px solid var(--border2)",background:"var(--surface)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*.85,color:"var(--dim)",cursor:"pointer",display:"flex",alignItems:"center",gap:6};
+  const optBtnStyle={padding:"clamp(12px,3vmin,20px) clamp(16px,4vmin,28px)",borderRadius:"var(--pill)",border:"2px solid var(--border2)",background:"var(--surface)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.05,color:"var(--dim)",cursor:"pointer",display:"flex",alignItems:"center",gap:8};
   const optBtnActiveStyle={...optBtnStyle,background:"var(--a-mid)",borderColor:"var(--accent)",color:"var(--accent)"};
   return(
     <div className="screen">
@@ -1216,16 +1318,17 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
         <div style={{display:"flex",justifyContent:"space-between",width:"100%",maxWidth:560,fontFamily:"var(--body)",fontWeight:700,color:"var(--secondary)",fontSize:clamp(Math.round(uiFP*.75),11,18)}}>
           <span>{sliderMin}</span><span>{Math.floor((sliderMax-sliderMin)*.25+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.5+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.75+sliderMin)}</span><span>{sliderMax}</span>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center"}}>
+          <div style={{fontFamily:"var(--body)",fontWeight:600,fontSize:uiFP*.8,color:"var(--dim)"}}>Examples:</div>
+          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.5,color:"var(--accent)"}}>{ex1}</div>
+          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.5,color:"var(--accent)"}}>{ex2}</div>
+        </div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
           <button style={alg!=="Off"?optBtnActiveStyle:optBtnStyle} onClick={()=>setShowAlgPicker(true)}>Algebra: {alg}</button>
           {modeId==="subtraction"&&<button style={allowNeg?optBtnActiveStyle:optBtnStyle} onClick={()=>{setAllowNeg(!allowNeg);saveMath({allowNeg:!allowNeg});}}>Negatives: {allowNeg?"On":"Off"}</button>}
           {modeId==="multiplication"&&<button style={timesTable?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!timesTable;setTimesTable(v);saveMath({timesTable:v});if(v&&hi>12)setHi(12);}}>Times Table: {timesTable?"On":"Off"}</button>}
           {modeId==="division"&&<button style={allowRemainder?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!allowRemainder;setAllowRemainder(v);saveMath({allowRemainder:v});}}>Remainder: {allowRemainder?"Yes":"No"}</button>}
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"center"}}>
-          <div style={{fontFamily:"var(--body)",fontWeight:600,fontSize:uiFP*.7,color:"var(--dim)"}}>Examples:</div>
-          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.1,color:"var(--accent)"}}>{ex1}</div>
-          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.1,color:"var(--accent)"}}>{ex2}</div>
+          <button style={answerEntry?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!answerEntry;setAnswerEntry(v);saveMath({answerEntry:v});}}>Answer Entry: {answerEntry?"On":"Off"}</button>
         </div>
       </div>
       <div className="letsel-actions">
@@ -1279,6 +1382,23 @@ function GenericSelectionScreen({title,onHome,activeUser,appState,persist,onGo,m
   );
 }
 
+// ── Answer entry helpers ─────────────────────────────────────────────────────
+function parseCardAnswer(card){
+  // card.answer may be a number, string like "5", or "3 R2"
+  return String(card.answer!=null?card.answer:"");
+}
+function getEntryPlaceholder(label){
+  // Find the algebra symbol or ? in the label to use as placeholder
+  const syms=["X","a","N",BOX_SYM,"?"];
+  for(const s of syms){if(label.includes(s))return s;}
+  return "?";
+}
+function buildDisplayLabel(label,enteredValue,placeholder){
+  // Replace the placeholder symbol with the entered value (or show placeholder if empty)
+  const display=enteredValue.length>0?enteredValue:placeholder;
+  return label.replace(placeholder,display);
+}
+
 // ── Flashcard Round ───────────────────────────────────────────────────────────
 function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   const portrait=usePortrait();const{vw,vh}=useViewport();
@@ -1286,35 +1406,71 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   const shared=config.shared;
   const timerCfg=shared.timer||{mode:"none",seconds:60};
   const scored=shared.scored||false;
+  const isAnswerEntry=!!config.answerEntry;
   const[scores,setScores]=useState(()=>new Array(total).fill(null));
   const[index,setIndex]=useState(0);
   const[elapsed,setElapsed]=useState(()=>timerCfg.mode==="down"?timerCfg.seconds:0);
   const[expired,setExpired]=useState(false);
   const[interacted,setInteracted]=useState(0);
+  const[entryValue,setEntryValue]=useState("");
+  const[feedback,setFeedback]=useState(null); // "correct" | "wrong" | null
+  const feedTimer=useRef(null);
   const timerRef=useRef(null);const lastTap=useRef(0);
   useEffect(()=>{
     if(timerCfg.mode==="none")return;
     timerRef.current=setInterval(()=>setElapsed(p=>{if(timerCfg.mode==="down"){const n=p-1;if(n<=0){clearInterval(timerRef.current);setExpired(true);return 0;}return n;}return p+1;}),1000);
     return()=>clearInterval(timerRef.current);
   },[]);
+  useEffect(()=>()=>clearTimeout(feedTimer.current),[]);
   const goHome=useCallback(()=>{clearInterval(timerRef.current);onHome();},[onHome]);
   const finish=useCallback((fs,fe,fi)=>{clearInterval(timerRef.current);onShowScore({scores:fs,total,elapsed:fe,timerCfg,scored,cardsInteracted:fi,mode:config.mode,config});},[total,timerCfg,scored,onShowScore,config]);
   useEffect(()=>{if(expired)finish(scores,0,interacted);},[expired]);
+  const advanceToNext=useCallback((ns,ni,fe)=>{
+    const next=index+1;if(next>=total)finish(ns,fe,ni);else{setIndex(next);setEntryValue("");setFeedback(null);}
+  },[index,total,finish]);
   const advanceFree=useCallback(e=>{
-    if(scored)return;if(e.target.closest&&e.target.closest(".icon-btn"))return;
+    if(scored||isAnswerEntry)return;if(e.target.closest&&e.target.closest(".icon-btn"))return;
     const now=Date.now();if(now-lastTap.current<350)return;lastTap.current=now;
     const ni=interacted+1;setInteracted(ni);
-    const next=index+1;if(next>=total)finish(scores,elapsed,ni);else setIndex(next);
-  },[scored,index,total,elapsed,scores,interacted,finish]);
+    advanceToNext(scores,ni,elapsed);
+  },[scored,isAnswerEntry,index,total,elapsed,scores,interacted,advanceToNext]);
   const scoreAction=useCallback(result=>{
-    if(result==="back"){if(index===0){clearInterval(timerRef.current);onBackToSelection();return;}setScores(p=>{const n=[...p];n[index-1]=null;return n;});setInteracted(i=>Math.max(0,i-1));setIndex(i=>i-1);return;}
+    if(result==="back"){if(index===0){clearInterval(timerRef.current);onBackToSelection();return;}setScores(p=>{const n=[...p];n[index-1]=null;return n;});setInteracted(i=>Math.max(0,i-1));setIndex(i=>i-1);setEntryValue("");setFeedback(null);return;}
     const ns=[...scores];ns[index]=result;setScores(ns);
     const ni=interacted+1;setInteracted(ni);
-    const next=index+1;if(next>=total)finish(ns,elapsed,ni);else setIndex(next);
-  },[scores,index,total,elapsed,interacted,finish,onBackToSelection]);
+    advanceToNext(ns,ni,elapsed);
+  },[scores,index,total,elapsed,interacted,advanceToNext,onBackToSelection]);
+  // Answer entry handlers
+  const handleNumKey=useCallback(digit=>{
+    if(feedback)return;
+    setEntryValue(v=>v.length<10?v+digit:v);
+  },[feedback]);
+  const handleNeg=useCallback(()=>{
+    if(feedback)return;
+    setEntryValue(v=>v.startsWith("−")?v.slice(1):"−"+v);
+  },[feedback]);
+  const handleCheck=useCallback(()=>{
+    if(feedback)return;
+    if(entryValue.length===0)return;
+    const card=deck[index];
+    const correctAnswer=parseCardAnswer(card);
+    // Normalize: replace − with - for comparison
+    const normalize=s=>String(s).replace(/−/g,"-").replace(/\s+/g,"").toLowerCase();
+    const isCorrect=normalize(entryValue)===normalize(correctAnswer);
+    const fb=isCorrect?"correct":"wrong";
+    setFeedback(fb);
+    const ni=interacted+1;setInteracted(ni);
+    if(scored){
+      const ns=[...scores];ns[index]=isCorrect?"correct":"wrong";setScores(ns);
+      feedTimer.current=setTimeout(()=>{advanceToNext(ns,ni,elapsed);},800);
+    }else{
+      feedTimer.current=setTimeout(()=>{advanceToNext(scores,ni,elapsed);},800);
+    }
+  },[feedback,entryValue,deck,index,scored,scores,interacted,elapsed,advanceToNext]);
   const card=deck[index];
   const maxLabelLen=Math.max(...deck.map(c=>c.label.length));
-  const cardH=vh*(portrait?0.65:0.6)-(scored?0:0);
+  const answerEntryActive=isAnswerEntry&&card.answer!=null;
+  const cardH=vh*(portrait?answerEntryActive?0.35:0.65:0.6);
   const cardW=vw*(portrait?0.85:scored?0.55:0.85);
   const fitH=cardH*0.8;
   const fitW=cardW*0.8/(maxLabelLen*0.6);
@@ -1325,31 +1481,59 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   const ssP=portrait?clamp(Math.round(vminPx(7)),24,52):clamp(Math.round(vminPx(5.5)),18,40);
   const spH=Math.round(vw/4*.95);
   const ssW=clamp(Math.round(vminPx(28)),120,240);
+  // Build display label with entry value replacing the unknown
+  const placeholder=answerEntryActive?getEntryPlaceholder(card.label):"?";
+  const displayText=answerEntryActive?buildDisplayLabel(card.label,entryValue,placeholder):card.label;
   const btns=[{cls:"back",sym:"\u25c0",lbl:"Back",a:"back"},{cls:"wrong",sym:"\u2717",lbl:"Wrong",a:"wrong"},{cls:"correct",sym:"\u2713",lbl:"Right",a:"correct"},{cls:"skip",sym:"\u25b6",lbl:"Skip",a:"skip"}];
   const portBar=<div className="score-bar-bottom">{btns.map(b=><button key={b.a}className={`score-btn ${b.cls}`}style={{flex:1,height:spH}}onClick={()=>scoreAction(b.a)}><span className="score-btn-sym"style={{fontSize:ssP}}>{b.sym}</span><span className="score-btn-lbl"style={{fontSize:sfP*.7}}>{b.lbl}</span></button>)}</div>;
   const sideBar=<div className="score-bar-side"style={{width:ssW,padding:"clamp(8px,2vmin,16px) clamp(8px,1.5vmin,14px)"}}>{btns.map(b=><button key={b.a}className={`score-btn ${b.cls}`}style={{flex:1,width:"100%"}}onClick={()=>scoreAction(b.a)}><span className="score-btn-sym"style={{fontSize:Math.round(ssP*1.15)}}>{b.sym}</span><span className="score-btn-lbl"style={{fontSize:sfP*.8}}>{b.lbl}</span></button>)}</div>;
+  const topBar=<div className="round-topbar">
+    <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
+    <button className="icon-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();onBackToSelection();}}><Ico.list sz={iSz}c="var(--dim)"/></button>
+    <div className="round-progress">{index+1} / {total}</div>
+    {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
+  </div>;
+  const cardArea=(noTap)=><div className={`card-area${noTap?" no-tap":""}`} style={{position:"relative"}}><div className="flashcard"key={index}><CardLabel text={displayText} fontSize={cFS}/></div>{feedback&&<div className={`answer-feedback ${feedback}`}>{feedback==="correct"?"Correct!":"Wrong"}</div>}</div>;
+  if(answerEntryActive){
+    // Answer entry mode: card on top, numpad below
+    if(!portrait) return(
+      <div className="round-screen" style={{flexDirection:"row"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+          {topBar}
+          <div className="card-area no-tap" style={{flex:1,position:"relative"}}><div className="flashcard"key={index}><CardLabel text={displayText} fontSize={cFS}/></div>{feedback&&<div className={`answer-feedback ${feedback}`}>{feedback==="correct"?"Correct!":"Wrong"}</div>}</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",justifyContent:"center",padding:"clamp(8px,2vmin,16px)"}}>
+          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck}/>
+        </div>
+      </div>
+    );
+    return(
+      <div className="round-screen">
+        {topBar}
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",minHeight:0}}>
+          <div className="flashcard" key={index} style={{marginBottom:8}}><CardLabel text={displayText} fontSize={cFS}/></div>
+          {feedback&&<div className={`answer-feedback ${feedback}`}>{feedback==="correct"?"Correct!":"Wrong"}</div>}
+        </div>
+        <div style={{padding:"0 clamp(16px,4vw,48px) clamp(8px,2vmin,16px)"}}>
+          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck}/>
+        </div>
+      </div>
+    );
+  }
   if(!portrait&&scored) return(
     <div className="round-screen" style={{flexDirection:"row"}}>
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-        <div className="round-topbar">
-          <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
-          <div className="round-progress">{index+1} / {total}</div>
-          {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
-        </div>
-        <div className="card-area no-tap" style={{flex:1}}><div className="flashcard"key={index}><CardLabel text={card.label} fontSize={cFS}/></div></div>
+        {topBar}
+        {cardArea(true)}
       </div>
       {sideBar}
     </div>
   );
   return(
     <div className="round-screen">
-      <div className="round-topbar">
-        <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
-        <div className="round-progress">{index+1} / {total}</div>
-        {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
-      </div>
+      {topBar}
       <div className="round-body col"onPointerDown={advanceFree}>
-        <div className={`card-area${scored?" no-tap":""}`}><div className="flashcard"key={index}><CardLabel text={card.label} fontSize={cFS}/></div></div>
+        {cardArea(scored)}
       </div>
       {portrait&&scored&&portBar}
     </div>
@@ -1399,6 +1583,7 @@ function ScoreScreen({scoreData,onRetry,onHome,onSelectAgain}){
 function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOpenTimer,onOpenCardCount,onFactoryReset}){
   const[showReset,setShowReset]=useState(false);
   const[showPicker,setShowPicker]=useState(false);
+  const[colorEditing,setColorEditing]=useState(null);
   const[confirmResetId,setConfirmResetId]=useState(null);
   const portrait=usePortrait();useViewport();
   const iSz=clamp(Math.round(vminPx(portrait?4.5:3.8)),20,36);const btnSz=iSz+20;
@@ -1457,8 +1642,7 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
               {[["primary","Primary"],["secondary","Secondary"],["accent","Accent"]].map(([key,lbl])=>(
                 <div key={key}className="color-swatch-wrap">
                   <div className="color-swatch-label">{lbl}</div>
-                  <div className="color-swatch"style={{background:cur[key]}}onClick={()=>cRefs[key].current?.click()}/>
-                  <input ref={cRefs[key]}type="color"value={cur[key]}onChange={e=>updateColor(key,e.target.value)}/>
+                  <div className="color-swatch"style={{background:cur[key]}}onClick={()=>setColorEditing(key)}/>
                 </div>
               ))}
               <div className="theme-name-col">
@@ -1466,6 +1650,12 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
                 <button className="theme-name-btn"onClick={()=>setShowPicker(true)}>{getTN(themeId)}<span style={{opacity:.6}}>&#9662;</span></button>
               </div>
             </div>
+            {colorEditing&&(
+              <div style={{marginTop:8}}>
+                <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(.85rem,2.5vmin,1.1rem)",color:"var(--secondary)",marginBottom:6,textTransform:"capitalize"}}>{colorEditing}</div>
+                <ColorPickerSliders value={cur[colorEditing]} onChange={v=>updateColor(colorEditing,v)}/>
+              </div>
+            )}
           </div>
         </div>
         <div className="settings-divider"/>
