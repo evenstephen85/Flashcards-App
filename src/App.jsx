@@ -74,11 +74,9 @@ function hexToHsb(hex){
   return{h:Math.round(h),s:Math.round(s),b:Math.round(mx*100)};
 }
 function brightnessToSB(n){
-  if(n<=10)return{s:0,b:n*5};
-  if(n<=25)return{s:(n-10)*6.66,b:50-2.5*(n-10)};
-  if(n<=75)return{s:100,b:1.75*(n-25)+12.5};
-  if(n<=90)return{s:100-6.66*(n-75),b:100-3.33*(n-75)};
-  return{s:0,b:50+5*(n-90)};
+  if(n<=20)return{s:n,b:5*n};
+  if(n<=80)return{s:n+(n-20)*4/3,b:100};
+  return{s:(100-n)*5,b:100};
 }
 function sbToBrightness(s,b){
   // reverse: find closest N
@@ -87,27 +85,39 @@ function sbToBrightness(s,b){
   return best;
 }
 
-function ColorPickerSliders({value,onChange}){
+function ColorPickerDialog({value,onSave,onCancel,label}){
   const hsb=hexToHsb(value);
   const[hue,setHue]=useState(hsb.h);
   const[bright,setBright]=useState(()=>sbToBrightness(hsb.s,hsb.b));
-  const apply=(h,n)=>{const{s,b}=brightnessToSB(n);const hex=hsbToHex(h,s,b);onChange(hex);};
-  const handleHue=e=>{const h=Number(e.target.value);setHue(h);apply(h,bright);};
-  const handleBright=e=>{const n=Number(e.target.value);setBright(n);apply(hue,n);};
+  const getHex=(h,n)=>{const{s,b}=brightnessToSB(n);return hsbToHex(h,s,b);};
+  const handleHue=e=>{setHue(Number(e.target.value));};
+  const handleBright=e=>{setBright(Number(e.target.value));};
   const{s:curS,b:curB}=brightnessToSB(bright);
   const previewColor=hsbToHex(hue,curS,curB);
   const hueGrad="linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)";
   const brightGrad=(()=>{const stops=[];for(let n=0;n<=100;n+=5){const{s,b}=brightnessToSB(n);stops.push(hsbToHex(hue,s,b));}return`linear-gradient(to right,${stops.join(",")})`;})();
+  const huePct=hue/359*100;
+  const brightPct=bright;
+  const thumbSz=28;
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%"}}>
-      <div style={{width:clamp(44,vminPx(9),66),height:clamp(44,vminPx(9),66),borderRadius:"var(--r)",border:"2px solid var(--border2)",background:previewColor,alignSelf:"center"}}/>
-      <div style={{position:"relative",height:28}}>
-        <div style={{position:"absolute",inset:0,borderRadius:14,background:hueGrad,pointerEvents:"none"}}/>
-        <input type="range"min="0"max="359"value={hue}onChange={handleHue}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
-      </div>
-      <div style={{position:"relative",height:28}}>
-        <div style={{position:"absolute",inset:0,borderRadius:14,background:brightGrad,pointerEvents:"none"}}/>
-        <input type="range"min="0"max="100"value={bright}onChange={handleBright}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+    <div className="dialog-overlay" onPointerDown={e=>{if(e.target===e.currentTarget)onCancel();}}>
+      <div className="dialog-box" style={{maxWidth:360,gap:16}}>
+        <div className="dialog-title" style={{textTransform:"capitalize"}}>{label||"Color"}</div>
+        <div style={{width:clamp(52,vminPx(12),80),height:clamp(52,vminPx(12),80),borderRadius:"var(--r)",border:"2px solid var(--border2)",background:previewColor,alignSelf:"center"}}/>
+        <div style={{position:"relative",height:thumbSz,width:"100%"}}>
+          <div style={{position:"absolute",top:4,bottom:4,left:0,right:0,borderRadius:14,background:hueGrad}}/>
+          <div style={{position:"absolute",top:0,left:`calc(${huePct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:hsbToHex(hue,100,100),border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none",transition:"left .05s"}}/>
+          <input type="range"min="0"max="359"value={hue}onChange={handleHue}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+        </div>
+        <div style={{position:"relative",height:thumbSz,width:"100%"}}>
+          <div style={{position:"absolute",top:4,bottom:4,left:0,right:0,borderRadius:14,background:brightGrad}}/>
+          <div style={{position:"absolute",top:0,left:`calc(${brightPct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:previewColor,border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none",transition:"left .05s"}}/>
+          <input type="range"min="0"max="100"value={bright}onChange={handleBright}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+        </div>
+        <div className="dialog-row">
+          <button className="dbtn" onClick={onCancel}>Cancel</button>
+          <button className="dbtn dbtn-primary" onClick={()=>onSave(previewColor)}>Save</button>
+        </div>
       </div>
     </div>
   );
@@ -156,7 +166,7 @@ function resolveUserTheme(u) {
 }
 
 // ── Shared settings ───────────────────────────────────────────────────────────
-const DEFAULT_SHARED = { timer:{mode:"none",seconds:60}, scored:false, order:"alpha", cardCount:0, algebra:"Off" };
+const DEFAULT_SHARED = { timer:{mode:"none",seconds:60}, scored:false, order:"alpha", cardCount:0, algebra:"Off", answerEntry:false };
 const getShared = u => ({...DEFAULT_SHARED,...(u?.sharedSettings||{})});
 const saveShared = (appState,activeUser,patch,persist) =>
   persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,sharedSettings:{...getShared(u),...patch}}:u)});
@@ -267,7 +277,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .greeting-body .hl3{color:var(--primary);font-weight:800;}
 .start-btn{width:100%;max-width:440px;padding:clamp(16px,4vmin,30px) 24px;background:var(--secondary);border:none;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,2.6rem);color:var(--bg);cursor:pointer;transition:transform .12s,filter .12s;margin-top:clamp(6px,2vmin,20px);}
 .start-btn:active{transform:scale(.97);filter:brightness(.92);}
-.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(10px,2vmin,24px) clamp(12px,3vmin,24px) 0;gap:clamp(6px,1.4vmin,14px);}
+.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 clamp(12px,3vmin,24px);gap:0;}
 .name-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,3.2rem);color:var(--secondary);text-align:center;line-height:1.1;}
 .name-display{width:100%;background:var(--surface);border:2.5px solid var(--border2);border-radius:var(--r);padding:clamp(8px,2vmin,18px) 20px;font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,6vmin,4rem);height:clamp(64px,12vmin,108px);display:flex;align-items:center;letter-spacing:2px;cursor:text;flex-shrink:0;}
 .name-placeholder{color:var(--dim);font-family:var(--title);font-weight:var(--title-weight);font-size:inherit;letter-spacing:2px;}
@@ -292,12 +302,16 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .done-row{flex:1;min-height:0;max-height:calc((100vw - 24px) / 10);display:flex;}
 .key-done{flex:1;background:var(--p-mid);border:2px solid var(--primary);border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--primary);cursor:pointer;touch-action:manipulation;transition:background .1s;}
 .key-done:active{background:var(--p-bold);}
-.numpad{width:100%;max-width:320px;display:flex;flex-direction:column;gap:clamp(4px,.8vmin,8px);margin:0 auto;}
-.numpad-row{display:flex;gap:clamp(4px,.8vmin,8px);}
-.numpad-key{flex:1;aspect-ratio:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.2rem,4vmin,2rem);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
+.numpad{width:100%;max-width:240px;display:flex;flex-direction:column;gap:clamp(3px,.6vmin,6px);margin:0 auto;}
+@media (orientation:landscape){.numpad{max-width:none;width:auto;height:100%;justify-content:center;}}
+.numpad-row{display:flex;gap:clamp(3px,.6vmin,6px);}
+@media (orientation:landscape){.numpad-row{flex:1;min-height:0;}}
+.numpad-key{flex:1;aspect-ratio:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.1rem,3.5vmin,1.8rem);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
+@media (orientation:landscape){.numpad-key{font-size:clamp(1.3rem,4.5vh,2.5rem);}}
 .numpad-key:active{background:var(--p-mid);transform:scale(.93);}
-.numpad-neg{color:var(--red);font-size:clamp(1.5rem,5vmin,2.5rem);font-weight:900;}
-.numpad-check{background:var(--g-soft);border-color:var(--green);color:var(--green);font-size:clamp(1.5rem,5vmin,2.5rem);}
+.numpad-neg{color:var(--red);font-weight:900;}
+.numpad-rem{color:var(--secondary);font-weight:900;}
+.numpad-check{background:var(--g-soft);border-color:var(--green);color:var(--green);}
 .numpad-check:active{background:var(--green);color:#fff;}
 .answer-input-box{display:inline-block;min-width:1.5em;padding:0 .15em;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);font-family:var(--title);font-weight:var(--title-weight);}
 .answer-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(2rem,8vmin,4rem);padding:clamp(8px,2vmin,16px) clamp(16px,4vmin,32px);border-radius:var(--r);z-index:10;animation:feedPop .4s ease-out;}
@@ -562,8 +576,9 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
   return (
     <div className="screen">
       <div className="name-wrap">
+        <div style={{flex:1,minHeight:0}}/>
         <div className="name-title">{title}</div>
-        <div style={{width:"100%"}}>
+        <div style={{width:"100%",flexShrink:0}}>
           <div ref={displayRef} className="name-display" onClick={handleDisplayClick}>
             {name?(
               <>
@@ -577,6 +592,7 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
           </div>
           {error&&<p className="name-error">{error}</p>}
         </div>
+        <div style={{flex:1,minHeight:0}}/>
         <div className="name-keyboard-area">
           <Keyboard onChar={handleChar} onDelete={handleDelete} onDone={handleDone} isShift={isShift} onShiftPress={handleShiftPress} hideDone={true}/>
           <div className="name-action-row">
@@ -830,21 +846,23 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   return(
     <div className="screen">
       <div><SelectionHeader title="Letters" shared={shared} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={()=>saveS({order:shared.order==="alpha"?"random":"alpha"})} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz}/></div>
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"4px 8px"}}>
-        <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
-          {ALPHABET.map(l=>{
-            const sel=curSel.has(l);
-            return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH}} onClick={()=>toggleL(l)}>
-              {caseMode==="upper"?l:l.toLowerCase()}
-            </button>;
-          })}
-          <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={toggleCase}>
-            <div className={`case-half${caseMode==="upper"?" active-half":""}`}>&#9650;</div>
-            <div className="case-divider"/>
-            <div className={`case-half${caseMode==="lower"?" active-half":""}`}>&#9660;</div>
-          </div>
-          <button key="ctrl-all" className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:`span ${cols-2}`,height:tileH}} onClick={toggleAll}>{allCur?"None":"All"}</button>
-        </div>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:`0 8px`}}>
+        {(()=>{
+          const splitAt=portrait?25:20;
+          const before=ALPHABET.slice(0,splitAt);
+          const after=ALPHABET.slice(splitAt);
+          const renderTile=l=>{const sel=curSel.has(l);return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH}} onClick={()=>toggleL(l)}>{caseMode==="upper"?l:l.toLowerCase()}</button>;};
+          return <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
+            {before.map(renderTile)}
+            <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={toggleCase}>
+              <div className={`case-half${caseMode==="upper"?" active-half":""}`}>&#9650;</div>
+              <div className="case-divider"/>
+              <div className={`case-half${caseMode==="lower"?" active-half":""}`}>&#9660;</div>
+            </div>
+            {after.map(renderTile)}
+            <button key="ctrl-all" className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:"span 2",height:tileH}} onClick={toggleAll}>{allCur?"None":"All"}</button>
+          </div>;
+        })()}
       </div>
       <div className="letsel-actions">
         <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
@@ -1037,20 +1055,23 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   return(
     <div className="screen">
       <div><SelectionHeader title="Phonics" shared={{...shared,order:"random"}} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={()=>{}} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz} hideShuffle/></div>
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"4px 8px"}}>
-        <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
-          {phonicLetters.map(l=>{
-            const sel=selLetters.has(l);
-            const isVowel=VOWELS.includes(l);
-            return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH,borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{phonicsCase==="upper"?l:l.toLowerCase()}</button>;
-          })}
-          <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={togglePhonicsCase}>
-            <div className={`case-half${phonicsCase==="upper"?" active-half":""}`}>&#9650;</div>
-            <div className="case-divider"/>
-            <div className={`case-half${phonicsCase==="lower"?" active-half":""}`}>&#9660;</div>
-          </div>
-          <button className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:`span ${cols-2}`,height:tileH}} onClick={toggleAll}>{allSel?"None":"All"}</button>
-        </div>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:`0 8px`}}>
+        {(()=>{
+          const splitAt=portrait?25:20;
+          const before=phonicLetters.slice(0,splitAt);
+          const after=phonicLetters.slice(splitAt);
+          const renderTile=l=>{const sel=selLetters.has(l);const isVowel=VOWELS.includes(l);return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH,borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{phonicsCase==="upper"?l:l.toLowerCase()}</button>;};
+          return <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
+            {before.map(renderTile)}
+            <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={togglePhonicsCase}>
+              <div className={`case-half${phonicsCase==="upper"?" active-half":""}`}>&#9650;</div>
+              <div className="case-divider"/>
+              <div className={`case-half${phonicsCase==="lower"?" active-half":""}`}>&#9660;</div>
+            </div>
+            {after.map(renderTile)}
+            <button className="tile ctrl-all" style={{fontSize:Math.round(tileFontSz*0.65),gridColumn:"span 2",height:tileH}} onClick={toggleAll}>{allSel?"None":"All"}</button>
+          </div>;
+        })()}
       </div>
       <div className="letsel-actions">
         <button className="footer-btn home" style={{fontSize:uiFP,padding:`${pPV*2}px 12px`}} onClick={onHome}><Ico.home sz={hISz} c="var(--accent)"/>Home</button>
@@ -1088,14 +1109,18 @@ function CardLabel({text,fontSize}){
 }
 
 // ── Numpad for answer entry ──────────────────────────────────────────────────
-function Numpad({onKey,onNeg,onCheck}){
-  const rows=[[1,2,3],[4,5,6],[7,8,9],["neg",0,"check"]];
+function Numpad({onKey,onNeg,onCheck,onR,showNeg,showR}){
+  const rows=[[1,2,3],[4,5,6],[7,8,9],["special",0,"check"]];
   return(
     <div className="numpad">
       {rows.map((row,ri)=>(
         <div className="numpad-row" key={ri}>
           {row.map(k=>{
-            if(k==="neg") return <button key={k} className="numpad-key numpad-neg" onPointerDown={e=>{e.preventDefault();onNeg();}}>−</button>;
+            if(k==="special"){
+              if(showNeg) return <button key="neg" className="numpad-key numpad-neg" onPointerDown={e=>{e.preventDefault();onNeg();}}>−</button>;
+              if(showR) return <button key="rem" className="numpad-key numpad-rem" onPointerDown={e=>{e.preventDefault();onR();}}>R</button>;
+              return <button key="blank" className="numpad-key" style={{visibility:"hidden"}}/>;
+            }
             if(k==="check") return <button key={k} className="numpad-key numpad-check" onPointerDown={e=>{e.preventDefault();onCheck();}}>✓</button>;
             return <button key={k} className="numpad-key" onPointerDown={e=>{e.preventDefault();onKey(String(k));}}>{k}</button>;
           })}
@@ -1106,12 +1131,12 @@ function Numpad({onKey,onNeg,onCheck}){
 }
 
 function applyAlgebra(a,op,b,answer,algebraMode){
-  if(algebraMode==="Off") return `${a} ${op} ${b} = ?`;
+  if(algebraMode==="Off") return {label:`${a} ${op} ${b} = ?`,hidden:answer};
   const sym = algebraMode==="Random" ? ALL_ALGEBRA_DISPLAY[Math.floor(Math.random()*ALL_ALGEBRA_DISPLAY.length)] : algebraMode;
   const pos = Math.floor(Math.random()*3);
-  if(pos===0) return `${sym} ${op} ${b} = ${answer}`;
-  if(pos===1) return `${a} ${op} ${sym} = ${answer}`;
-  return `${a} ${op} ${b} = ${sym}`;
+  if(pos===0) return {label:`${sym} ${op} ${b} = ${answer}`,hidden:a};
+  if(pos===1) return {label:`${a} ${op} ${sym} = ${answer}`,hidden:b};
+  return {label:`${a} ${op} ${b} = ${sym}`,hidden:answer};
 }
 
 function makeExample(a,op,b,answer,algebraMode,forcePos){
@@ -1121,7 +1146,6 @@ function makeExample(a,op,b,answer,algebraMode,forcePos){
   if(forcePos===1) return `${a} ${op} ${sym} = ${answer}`;
   return `${a} ${op} ${b} = ${sym}`;
 }
-
 function highestFactor(n){ for(let i=Math.floor(n/2);i>=2;i--){if(n%i===0)return i;} return 1; }
 
 function buildAdditionDeck(lo,hi,count,alg){
@@ -1131,9 +1155,9 @@ function buildAdditionDeck(lo,hi,count,alg){
     const sum=Math.floor(Math.random()*(hi-lo+1))+lo;
     const a=Math.floor(Math.random()*(sum+1));
     const b=sum-a;
-    const label=applyAlgebra(a,"+",b,sum,alg);
+    const{label,hidden}=applyAlgebra(a,"+",b,sum,alg);
     if(seen.has(label))continue;
-    seen.add(label);deck.push({label,answer:sum});
+    seen.add(label);deck.push({label,answer:hidden});
   }
   return deck;
 }
@@ -1144,17 +1168,15 @@ function buildSubtractionDeck(lo,hi,count,alg,allowNeg){
     attempts++;
     const a=Math.floor(Math.random()*(hi-lo+1))+lo;
     const b=Math.floor(Math.random()*(hi-lo+1))+lo;
-    let label,ans;
+    let r;
     if(allowNeg){
-      ans=a-b;
-      label=applyAlgebra(a,"−",b,ans,alg);
+      r=applyAlgebra(a,"−",b,a-b,alg);
     } else {
       const big=Math.max(a,b),small=Math.min(a,b);
-      ans=big-small;
-      label=applyAlgebra(big,"−",small,ans,alg);
+      r=applyAlgebra(big,"−",small,big-small,alg);
     }
-    if(seen.has(label))continue;
-    seen.add(label);deck.push({label,answer:ans});
+    if(seen.has(r.label))continue;
+    seen.add(r.label);deck.push({label:r.label,answer:r.hidden});
   }
   return deck;
 }
@@ -1165,9 +1187,9 @@ function buildMultiplicationDeck(lo,hi,count,alg){
     attempts++;
     const a=Math.floor(Math.random()*(hi-lo+1))+lo;
     const b=Math.floor(Math.random()*(hi-lo+1))+lo;
-    const label=applyAlgebra(a,"×",b,a*b,alg);
-    if(seen.has(label))continue;
-    seen.add(label);deck.push({label,answer:a*b});
+    const r=applyAlgebra(a,"×",b,a*b,alg);
+    if(seen.has(r.label))continue;
+    seen.add(r.label);deck.push({label:r.label,answer:r.hidden});
   }
   return deck;
 }
@@ -1175,7 +1197,8 @@ function buildMultiplicationDeck(lo,hi,count,alg){
 function buildTimesTableDeck(n,alg){
   const deck=[];
   for(let i=1;i<=12;i++){
-    deck.push({label:applyAlgebra(n,"×",i,n*i,alg),answer:n*i});
+    const r=applyAlgebra(n,"×",i,n*i,alg);
+    deck.push({label:r.label,answer:r.hidden});
   }
   return deck;
 }
@@ -1192,16 +1215,16 @@ function buildDivisionDeck(lo,hi,count,alg){
     const divisor=Math.floor(Math.random()*(hf-1))+2;
     if(dividend%divisor!==0)continue;
     const q=dividend/divisor;
-    const label=applyAlgebra(dividend,"÷",divisor,q,alg);
-    if(seen.has(label))continue;
-    seen.add(label);deck.push({label,answer:q});
+    const r=applyAlgebra(dividend,"÷",divisor,q,alg);
+    if(seen.has(r.label))continue;
+    seen.add(r.label);deck.push({label:r.label,answer:r.hidden});
   }
   while(deck.length<count){
     const d=Math.floor(Math.random()*9)+2;
     const q=Math.floor(Math.random()*10)+1;
-    const label=applyAlgebra(d*q,"÷",d,q,alg);
-    if(seen.has(label)){continue;}
-    seen.add(label);deck.push({label,answer:q});
+    const r=applyAlgebra(d*q,"÷",d,q,alg);
+    if(seen.has(r.label)){continue;}
+    seen.add(r.label);deck.push({label:r.label,answer:r.hidden});
   }
   return deck;
 }
@@ -1214,10 +1237,10 @@ function buildDivisionRemainderDeck(lo,hi,count,alg){
     if(dividend<3)continue;
     const divisor=Math.floor(Math.random()*(Math.min(dividend-1,hi)-2+1))+2;
     const q=Math.floor(dividend/divisor);
-    const r=dividend%divisor;
-    const label=applyAlgebra(dividend,"÷",divisor,r>0?`${q} R${r}`:`${q}`,alg);
-    if(seen.has(label))continue;
-    seen.add(label);deck.push({label,answer:r>0?`${q} R${r}`:`${q}`});
+    const rm=dividend%divisor;
+    const res=applyAlgebra(dividend,"÷",divisor,rm>0?`${q} R${rm}`:`${q}`,alg);
+    if(seen.has(res.label))continue;
+    seen.add(res.label);deck.push({label:res.label,answer:res.hidden});
   }
   return deck;
 }
@@ -1240,7 +1263,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const[allowNeg,setAllowNeg]=useState(ms.allowNeg??defs.allowNeg??false);
   const[timesTable,setTimesTable]=useState(ms.timesTable??defs.timesTable??false);
   const[allowRemainder,setAllowRemainder]=useState(ms.allowRemainder??defs.allowRemainder??false);
-  const[answerEntry,setAnswerEntry]=useState(ms.answerEntry??false);
+  const[answerEntry,setAnswerEntry]=useState(shared.answerEntry??ms.answerEntry??false);
   const[showAlgPicker,setShowAlgPicker]=useState(false);
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
@@ -1328,7 +1351,7 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
           {modeId==="subtraction"&&<button style={allowNeg?optBtnActiveStyle:optBtnStyle} onClick={()=>{setAllowNeg(!allowNeg);saveMath({allowNeg:!allowNeg});}}>Negatives: {allowNeg?"On":"Off"}</button>}
           {modeId==="multiplication"&&<button style={timesTable?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!timesTable;setTimesTable(v);saveMath({timesTable:v});if(v&&hi>12)setHi(12);}}>Times Table: {timesTable?"On":"Off"}</button>}
           {modeId==="division"&&<button style={allowRemainder?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!allowRemainder;setAllowRemainder(v);saveMath({allowRemainder:v});}}>Remainder: {allowRemainder?"Yes":"No"}</button>}
-          <button style={answerEntry?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!answerEntry;setAnswerEntry(v);saveMath({answerEntry:v});}}>Answer Entry: {answerEntry?"On":"Off"}</button>
+          <button style={answerEntry?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!answerEntry;setAnswerEntry(v);saveS({answerEntry:v});}}>Answer Entry: {answerEntry?"On":"Off"}</button>
         </div>
       </div>
       <div className="letsel-actions">
@@ -1449,6 +1472,13 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
     if(feedback)return;
     setEntryValue(v=>v.startsWith("−")?v.slice(1):"−"+v);
   },[feedback]);
+  const handleR=useCallback(()=>{
+    if(feedback)return;
+    if(entryValue.includes("R"))return;
+    setEntryValue(v=>v+"R");
+  },[feedback,entryValue]);
+  const showNeg=config.mode==="subtraction"&&!!config.allowNeg;
+  const showR=config.mode==="division"&&!!config.allowRemainder;
   const handleCheck=useCallback(()=>{
     if(feedback)return;
     if(entryValue.length===0)return;
@@ -1502,8 +1532,8 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
           {topBar}
           <div className="card-area no-tap" style={{flex:1,position:"relative"}}><div className="flashcard"key={index}><CardLabel text={displayText} fontSize={cFS}/></div>{feedback&&<div className={`answer-feedback ${feedback}`}>{feedback==="correct"?"Correct!":"Wrong"}</div>}</div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",justifyContent:"center",padding:"clamp(8px,2vmin,16px)"}}>
-          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck}/>
+        <div style={{display:"flex",flexDirection:"column",justifyContent:"stretch",padding:"clamp(8px,2vh,16px) clamp(8px,2vw,16px)",height:"100%",boxSizing:"border-box"}}>
+          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck} onR={handleR} showNeg={showNeg} showR={showR}/>
         </div>
       </div>
     );
@@ -1515,7 +1545,7 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
           {feedback&&<div className={`answer-feedback ${feedback}`}>{feedback==="correct"?"Correct!":"Wrong"}</div>}
         </div>
         <div style={{padding:"0 clamp(16px,4vw,48px) clamp(8px,2vmin,16px)"}}>
-          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck}/>
+          <Numpad onKey={handleNumKey} onNeg={handleNeg} onCheck={handleCheck} onR={handleR} showNeg={showNeg} showR={showR}/>
         </div>
       </div>
     );
@@ -1596,7 +1626,6 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
   const getTN=id=>themeNames[id]||BASE_THEMES.find(t=>t.id===id)?.name||id;
   const getT=id=>{const b=BASE_THEMES.find(t=>t.id===id)||BASE_THEMES[0];return{...b,...(customThemes[id]||{}),id};};
   const cur=getT(themeId);
-  const cRefs={primary:useRef(null),secondary:useRef(null),accent:useRef(null)};
   const saveUser=useCallback(u=>persist({...appState,users:appState.users.map(x=>x.name===activeUser?{...x,...u}:x)}),[appState,activeUser,persist]);
   const updateColor=(key,val)=>{const ov={...(customThemes[themeId]||{}),[key]:val};saveUser({customThemes:{...customThemes,[themeId]:ov}});applyTheme({...cur,...ov,id:themeId},fontId);};
   const selectTheme=id=>{const t=getT(id);saveUser({themeId:id});setShowPicker(false);applyTheme(t,fontId);};
@@ -1650,12 +1679,6 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
                 <button className="theme-name-btn"onClick={()=>setShowPicker(true)}>{getTN(themeId)}<span style={{opacity:.6}}>&#9662;</span></button>
               </div>
             </div>
-            {colorEditing&&(
-              <div style={{marginTop:8}}>
-                <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(.85rem,2.5vmin,1.1rem)",color:"var(--secondary)",marginBottom:6,textTransform:"capitalize"}}>{colorEditing}</div>
-                <ColorPickerSliders value={cur[colorEditing]} onChange={v=>updateColor(colorEditing,v)}/>
-              </div>
-            )}
           </div>
         </div>
         <div className="settings-divider"/>
@@ -1691,6 +1714,7 @@ function SettingsScreen({onBack,activeUser,appState,persist,onEditThemeName,onOp
       )}
       {confirmResetId&&<ResetThemeDialog name={getTN(confirmResetId)} onConfirm={()=>doResetTheme(confirmResetId)} onCancel={()=>setConfirmResetId(null)}/>}
       {showReset&&<ResetDialog onConfirm={()=>{setShowReset(false);onFactoryReset();}} onCancel={()=>setShowReset(false)}/>}
+      {colorEditing&&<ColorPickerDialog value={cur[colorEditing]} label={colorEditing} onSave={v=>{updateColor(colorEditing,v);setColorEditing(null);}} onCancel={()=>setColorEditing(null)}/>}
     </div>
   );
 }
