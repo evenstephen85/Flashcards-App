@@ -317,7 +317,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .key-done{flex:1;background:var(--p-mid);border:2px solid var(--primary);border-radius:var(--r);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--primary);cursor:pointer;touch-action:manipulation;transition:background .1s;}
 .key-done:active{background:var(--p-bold);}
 .numpad{width:100%;max-width:240px;display:flex;flex-direction:column;gap:clamp(3px,.6vmin,6px);margin:0 auto;}
-@media (orientation:landscape){.numpad{max-width:none;width:auto;height:100%;justify-content:center;}}
+@media (orientation:landscape){.numpad{max-width:none;width:33vw;height:100%;justify-content:center;}}
 .numpad-row{display:flex;gap:clamp(3px,.6vmin,6px);}
 @media (orientation:landscape){.numpad-row{flex:1;min-height:0;}}
 .numpad-key{flex:1;aspect-ratio:1;min-width:0;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--primary);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.1rem,3.5vmin,1.8rem);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:background .07s,transform .07s;}
@@ -325,13 +325,13 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .numpad-key:active{background:var(--p-mid);transform:scale(.93);}
 .numpad-neg{color:var(--red);font-weight:900;}
 .numpad-rem{color:var(--secondary);font-weight:900;}
-.numpad-check{background:var(--g-soft);border-color:var(--green);color:var(--green);}
+.numpad-check{background:var(--g-soft);border-color:var(--green);color:var(--green);flex-direction:column;gap:0;line-height:1;}
 .numpad-check:active{background:var(--green);color:#fff;}
 .answer-input-box{display:inline-block;min-width:1.5em;padding:0 .15em;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);font-family:var(--title);font-weight:var(--title-weight);}
-.answer-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(2rem,8vmin,4rem);padding:clamp(8px,2vmin,16px) clamp(16px,4vmin,32px);border-radius:var(--r);z-index:10;animation:feedPop .4s ease-out;}
-.answer-feedback.correct{color:var(--green);background:var(--g-soft);}
-.answer-feedback.wrong{color:var(--red);background:var(--r-soft);}
-@keyframes feedPop{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}50%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.answer-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(3rem,12vmin,6rem);padding:clamp(12px,3vmin,24px) clamp(24px,6vmin,48px);border-radius:var(--r);z-index:10;animation:feedPop .2s ease-out;}
+.answer-feedback.correct{color:var(--green);background:rgba(var(--rgb-accent),.85);}
+.answer-feedback.wrong{color:var(--red);background:rgba(var(--rgb-primary),.85);}
+@keyframes feedPop{0%{transform:translate(-50%,-50%) scale(.7);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 .uselect-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(12px,2.5vmin,28px) clamp(14px,3.5vmin,40px);gap:clamp(10px,2vmin,20px);}
 .uselect-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,7vmin,4.5rem);color:var(--secondary);text-align:center;}
 .user-grid{display:grid;width:100%;gap:clamp(6px,1.2vmin,12px);overflow-y:auto;flex:1;align-content:start;}
@@ -647,10 +647,12 @@ function TimerDialog({timer,onSave,onCancel,fs=22}){
           )}
         </div>
         <div style={{width:"100%",padding:"clamp(8px,2vmin,16px) 0",opacity:mode==="down"?1:0.25,pointerEvents:mode==="down"?"auto":"none",transition:"opacity .2s"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:clamp(Math.round(fs*.5),6,16),marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:clamp(Math.round(fs*.3),4,10),marginBottom:10}}>
+            <button onClick={()=>nudge(-5)} style={{width:fs*1.6,height:fs*1.6,borderRadius:"50%",border:"2px solid var(--border2)",background:"var(--surface)",color:"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*.8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>-5</button>
             <button onClick={()=>nudge(-1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>&#8722;</button>
-            <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.8,color:"var(--accent)",textAlign:"center",minWidth:fs*4}}>{fmtTime(secs)}</div>
+            <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.8,color:"var(--accent)",textAlign:"center",minWidth:fs*3.5}}>{fmtTime(secs)}</div>
             <button onClick={()=>nudge(1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+            <button onClick={()=>nudge(5)} style={{width:fs*1.6,height:fs*1.6,borderRadius:"50%",border:"2px solid var(--border2)",background:"var(--surface)",color:"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*.8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+5</button>
           </div>
           <input type="range" min="5" max="120" value={secs} onChange={handleSlider} className="dialog-slider"/>
           <div className="dialog-slider-labels" style={{fontSize:fs*.7}}>
@@ -682,10 +684,12 @@ function CardCountDialog({count,totalSelected,onSave,onCancel,fs=22}){
       <div className="dialog-box">
         <div className="dialog-title" style={{fontSize:fs*1.3}}>Maximum Cards?</div>
         <div style={{width:"100%",padding:"clamp(8px,2vmin,16px) 0"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:clamp(Math.round(fs*.5),6,16),marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:clamp(Math.round(fs*.3),4,10),marginBottom:10}}>
+            <button onClick={()=>nudge(-5)} style={{width:fs*1.6,height:fs*1.6,borderRadius:"50%",border:"2px solid var(--border2)",background:"var(--surface)",color:"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*.8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>-5</button>
             <button onClick={()=>nudge(-1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>&#8722;</button>
-            <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*2,color:"var(--accent)",textAlign:"center",minWidth:fs*4}}>{isAll?"All":val}</div>
+            <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*2,color:"var(--accent)",textAlign:"center",minWidth:fs*3.5}}>{isAll?"All":val}</div>
             <button onClick={()=>nudge(1)} style={{width:fs*1.8,height:fs*1.8,borderRadius:"50%",border:"2px solid var(--accent)",background:"var(--a-soft)",color:"var(--accent)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*1.1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+            <button onClick={()=>nudge(5)} style={{width:fs*1.6,height:fs*1.6,borderRadius:"50%",border:"2px solid var(--border2)",background:"var(--surface)",color:"var(--dim)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:fs*.8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+5</button>
           </div>
           <input type="range" min="5" max="26" value={sliderVal} onChange={handleSlider} className="dialog-slider"/>
           <div className="dialog-slider-labels" style={{fontSize:fs*.7}}>
@@ -814,7 +818,7 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const ls=user?.letterSettings||{};
   const shared=getShared(user);
   const[selUpper,setSelUpper]=useState(()=>new Set(Array.isArray(ls.selUpper)?ls.selUpper:ALPHABET));
-  const[selLower,setSelLower]=useState(()=>new Set(Array.isArray(ls.selLower)?ls.selLower:ALPHABET));
+  const[selLower,setSelLower]=useState(()=>new Set(Array.isArray(ls.selLower)?ls.selLower:[]));
   const[caseMode,setCaseMode]=useState(ls.caseMode||"upper");
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
@@ -853,14 +857,14 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const gap=Math.max(3,Math.round(vminPx(0.6)));
   const tileTarget=portrait?Math.floor((vw-40)/5):Math.floor((vw-40)/10);
   const rows=portrait?6:3;
-  const availH=vh-200;
+  const availH=vh-(portrait?200:140);
   const tileH=Math.min(tileTarget,Math.floor((availH-gap*(rows-1))/rows));
   const gridW=tileH*cols+gap*(cols-1);
   const tileFontSz=Math.round(tileH*0.55);
   return(
     <div className="screen">
       <div><SelectionHeader title="Letters" shared={shared} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={()=>saveS({order:shared.order==="alpha"?"random":"alpha"})} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz}/></div>
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:`0 8px`}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:portrait?"0 8px":"0 8px"}}>
         {(()=>{
           const splitAt=portrait?25:20;
           const before=ALPHABET.slice(0,splitAt);
@@ -893,10 +897,10 @@ function LetterSelectionScreen({onGo,onHome,activeUser,appState,persist}){
 function NumberSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const portrait=usePortrait();useViewport();
   const user=appState.users.find(u=>u.name===activeUser);
-  const ns=user?.numberSettings||{lo:0,hi:100};
+  const ns=user?.numberSettings||{lo:0,hi:10};
   const shared=getShared(user);
   const[lo,setLo]=useState(ns.lo??0);
-  const[hi,setHi]=useState(ns.hi??100);
+  const[hi,setHi]=useState(ns.hi??10);
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
   const saveNums=(l,h)=>persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,numberSettings:{lo:l,hi:h}}:u)});
@@ -951,7 +955,7 @@ function SightWordsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const user=appState.users.find(u=>u.name===activeUser);
   const shared=getShared(user);
   const sw=user?.sightWordSettings||{};
-  const[selected,setSelected]=useState(()=>new Set(Array.isArray(sw.selected)?sw.selected:SIGHT_WORDS));
+  const[selected,setSelected]=useState(()=>new Set(Array.isArray(sw.selected)?sw.selected:SIGHT_WORDS.slice(0,25)));
   const[sortBy,setSortBy]=useState(sw.sortBy||"frequency");
   const[showTimer,setShowTimer]=useState(false);
   const[showCC,setShowCC]=useState(false);
@@ -1062,7 +1066,7 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const phonicLetters=[...VOWELS,...CONSONANTS];
   const tileTarget=portrait?Math.floor((vw-40)/5):Math.floor((vw-40)/10);
   const rows=portrait?6:3;
-  const availH=vh-200;
+  const availH=vh-(portrait?200:140);
   const tileH=Math.min(tileTarget,Math.floor((availH-gap*(rows-1))/rows));
   const gridW=tileH*cols+gap*(cols-1);
   const tileFontSz=Math.round(tileH*0.55);
@@ -1135,7 +1139,7 @@ function Numpad({onKey,onNeg,onCheck,onR,showNeg,showR}){
               if(showR) return <button key="rem" className="numpad-key numpad-rem" onPointerDown={e=>{e.preventDefault();onR();}}>R</button>;
               return <button key="blank" className="numpad-key" style={{visibility:"hidden"}}/>;
             }
-            if(k==="check") return <button key={k} className="numpad-key numpad-check" onPointerDown={e=>{e.preventDefault();onCheck();}}>✓</button>;
+            if(k==="check") return <button key={k} className="numpad-key numpad-check" onPointerDown={e=>{e.preventDefault();onCheck();}}><span>✓</span><span style={{fontSize:"0.45em",fontWeight:700}}>check</span></button>;
             return <button key={k} className="numpad-key" onPointerDown={e=>{e.preventDefault();onKey(String(k));}}>{k}</button>;
           })}
         </div>
@@ -1266,10 +1270,10 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const shared=getShared(user);
   const ms=user?.mathSettings?.[modeId]||{};
   const defs={
-    addition:{lo:1,hi:20,alg:"Off"},
-    subtraction:{lo:5,hi:20,alg:"Off",allowNeg:false},
+    addition:{lo:1,hi:10,alg:"Off"},
+    subtraction:{lo:5,hi:10,alg:"Off",allowNeg:false},
     multiplication:{lo:0,hi:12,alg:"Off",timesTable:false},
-    division:{lo:2,hi:50,alg:"Off",allowRemainder:false},
+    division:{lo:2,hi:10,alg:"Off",allowRemainder:false},
   }[modeId];
   const[lo,setLo]=useState(ms.lo??defs.lo);
   const[hi,setHi]=useState(ms.hi??defs.hi);
@@ -1344,7 +1348,8 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
     <div className="screen">
       <div><SelectionHeader title={title} shared={{...shared,order:showShuffle?shared.order:"random"}} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={showShuffle?()=>saveS({order:shared.order==="alpha"?"random":"alpha"}):()=>{}} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz} hideShuffle={!showShuffle}/></div>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"clamp(6px,1.5vmin,14px)",padding:"clamp(8px,2vmin,20px) clamp(16px,4vmin,48px)",overflowY:"auto",minHeight:0}}>
-        <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(1.2rem,3.5vmin,1.8rem)",color:"var(--dim)",textAlign:"center"}}>{question}</div>
+        <div style={{flex:"1 1 clamp(4px,1.5vmin,16px)",minHeight:2}}/>
+        <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(1.4rem,4vmin,2.2rem)",color:"var(--dim)",textAlign:"center"}}>{question}</div>
         <div className="num-range-display">{isDual?`${lo} \u2013 ${hi}`:hi}</div>
         <div className="dual-slider" style={{width:"100%",maxWidth:560}}>
           <div className="slider-track"/>
@@ -1353,9 +1358,10 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
           <input type="range" min={sliderMin} max={sliderMax} value={hi} onChange={isDual?handleHi:handleSingle} style={isDual?{zIndex:lo>=(sliderMin+sliderMax)/2?1:3}:undefined}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",width:"100%",maxWidth:560,fontFamily:"var(--body)",fontWeight:700,color:"var(--secondary)",fontSize:clamp(Math.round(uiFP*.75),11,18)}}>
-          <span>{sliderMin}</span><span>{Math.floor((sliderMax-sliderMin)*.25+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.5+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.75+sliderMin)}</span><span>{sliderMax}</span>
+          {(modeId==="multiplication"?[0,3,6,9,12]:[sliderMin,25,50,75,sliderMax]).map((v,i)=><span key={i}>{v}</span>)}
         </div>
         <div style={{flex:"1 1 clamp(8px,2vmin,20px)",minHeight:4}}/>
+        <div style={{fontFamily:"var(--body)",fontWeight:600,fontSize:uiFP*.8,color:"var(--dim)"}}>{portrait?"Examples:":"Examples"}</div>
         <div style={{display:"flex",gap:clamp(8,vminPx(2),16),justifyContent:"center",width:"100%",maxWidth:560}}>
           <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid var(--border2)",borderRadius:"var(--r)",padding:"clamp(6px,1.5vmin,12px) clamp(8px,2vmin,16px)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.3,color:"var(--accent)"}}>{ex1}</div>
           <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid var(--border2)",borderRadius:"var(--r)",padding:"clamp(6px,1.5vmin,12px) clamp(8px,2vmin,16px)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.3,color:"var(--accent)"}}>{ex2}</div>
@@ -1529,12 +1535,12 @@ function FlashcardRound({config,onHome,onShowScore,onBackToSelection}){
   // Build display label with entry value replacing the unknown
   const placeholder=answerEntryActive?getEntryPlaceholder(card.label):"?";
   const displayText=answerEntryActive?buildDisplayLabel(card.label,entryValue,placeholder):card.label;
-  const btns=[{cls:"back",sym:"\u25c0",lbl:"Back",a:"back"},{cls:"wrong",sym:"\u2717",lbl:"Wrong",a:"wrong"},{cls:"correct",sym:"\u2713",lbl:"Right",a:"correct"},{cls:"skip",sym:"\u25b6",lbl:"Skip",a:"skip"}];
+  const btns=[{cls:"back",sym:"<",lbl:"Back",a:"back"},{cls:"wrong",sym:"",lbl:"Wrong",a:"wrong"},{cls:"correct",sym:"",lbl:"Right",a:"correct"},{cls:"skip",sym:">",lbl:"Skip",a:"skip"}];
   const portBar=<div className="score-bar-bottom">{btns.map(b=><button key={b.a}className={`score-btn ${b.cls}`}style={{flex:1,height:spH}}onClick={()=>scoreAction(b.a)}><span className="score-btn-sym"style={{fontSize:ssP}}>{b.sym}</span><span className="score-btn-lbl"style={{fontSize:sfP*.7}}>{b.lbl}</span></button>)}</div>;
   const sideBar=<div className="score-bar-side"style={{width:ssW,padding:"clamp(8px,2vmin,16px) clamp(8px,1.5vmin,14px)"}}>{btns.map(b=><button key={b.a}className={`score-btn ${b.cls}`}style={{flex:1,width:"100%"}}onClick={()=>scoreAction(b.a)}><span className="score-btn-sym"style={{fontSize:Math.round(ssP*1.15)}}>{b.sym}</span><span className="score-btn-lbl"style={{fontSize:sfP*.8}}>{b.lbl}</span></button>)}</div>;
   const topBar=<div className="round-topbar">
     <button className="icon-btn home-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();goHome();}}><Ico.home sz={iSz}c="var(--accent)"/></button>
-    <button className="icon-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();onBackToSelection();}}><Ico.list sz={iSz}c="var(--dim)"/></button>
+    <button className="icon-btn"style={{width:btnSz,height:btnSz}}onPointerDown={e=>{e.stopPropagation();onBackToSelection();}}><Ico.back sz={iSz}c="var(--dim)"/></button>
     <div className="round-progress">{index+1} / {total}</div>
     {timerCfg.mode!=="none"?<span className={`round-timer${isW?" warn":""}`}>{fmtTime(elapsed)}</span>:<div style={{width:btnSz}}/>}
   </div>;
