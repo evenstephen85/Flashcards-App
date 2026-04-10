@@ -85,13 +85,26 @@ function sbToBrightness(s,b){
   return best;
 }
 
+function useSliderDrag(setter,min,max){
+  const ref=useRef(null);
+  const calc=useCallback(e=>{
+    const rect=ref.current.getBoundingClientRect();
+    const x=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+    setter(Math.round(min+x*(max-min)));
+  },[setter,min,max]);
+  const onDown=useCallback(e=>{
+    e.preventDefault();calc(e);
+    const move=ev=>calc(ev);
+    const up=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);};
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",up);
+  },[calc]);
+  return{ref,onDown};
+}
 function ColorPickerDialog({value,onSave,onCancel,label}){
   const hsb=hexToHsb(value);
   const[hue,setHue]=useState(hsb.h);
   const[bright,setBright]=useState(()=>sbToBrightness(hsb.s,hsb.b));
-  const getHex=(h,n)=>{const{s,b}=brightnessToSB(n);return hsbToHex(h,s,b);};
-  const handleHue=e=>{setHue(Number(e.target.value));};
-  const handleBright=e=>{setBright(Number(e.target.value));};
   const{s:curS,b:curB}=brightnessToSB(bright);
   const previewColor=hsbToHex(hue,curS,curB);
   const hueGrad="linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)";
@@ -99,20 +112,20 @@ function ColorPickerDialog({value,onSave,onCancel,label}){
   const huePct=hue/359*100;
   const brightPct=bright;
   const thumbSz=28;
+  const hueSlider=useSliderDrag(setHue,0,359);
+  const brightSlider=useSliderDrag(setBright,0,100);
   return(
     <div className="dialog-overlay" onPointerDown={e=>{if(e.target===e.currentTarget)onCancel();}}>
       <div className="dialog-box" style={{maxWidth:360,gap:16}}>
         <div className="dialog-title" style={{textTransform:"capitalize"}}>{label||"Color"}</div>
         <div style={{width:clamp(52,vminPx(12),80),height:clamp(52,vminPx(12),80),borderRadius:"var(--r)",border:"2px solid var(--border2)",background:previewColor,alignSelf:"center"}}/>
-        <div style={{position:"relative",height:thumbSz,width:"100%"}}>
+        <div ref={hueSlider.ref} onPointerDown={hueSlider.onDown} style={{position:"relative",height:thumbSz,width:"100%",cursor:"pointer",touchAction:"none"}}>
           <div style={{position:"absolute",top:4,bottom:4,left:0,right:0,borderRadius:14,background:hueGrad}}/>
-          <div style={{position:"absolute",top:0,left:`calc(${huePct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:hsbToHex(hue,100,100),border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none",transition:"left .05s"}}/>
-          <input type="range"min="0"max="359"value={hue}onChange={handleHue}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+          <div style={{position:"absolute",top:0,left:`calc(${huePct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:hsbToHex(hue,100,100),border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none"}}/>
         </div>
-        <div style={{position:"relative",height:thumbSz,width:"100%"}}>
+        <div ref={brightSlider.ref} onPointerDown={brightSlider.onDown} style={{position:"relative",height:thumbSz,width:"100%",cursor:"pointer",touchAction:"none"}}>
           <div style={{position:"absolute",top:4,bottom:4,left:0,right:0,borderRadius:14,background:brightGrad}}/>
-          <div style={{position:"absolute",top:0,left:`calc(${brightPct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:previewColor,border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none",transition:"left .05s"}}/>
-          <input type="range"min="0"max="100"value={bright}onChange={handleBright}style={{position:"absolute",width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0}}/>
+          <div style={{position:"absolute",top:0,left:`calc(${brightPct}% - ${thumbSz/2}px)`,width:thumbSz,height:thumbSz,borderRadius:"50%",background:previewColor,border:"3px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,.4)",pointerEvents:"none"}}/>
         </div>
         <div className="dialog-row">
           <button className="dbtn" onClick={onCancel}>Cancel</button>
@@ -277,7 +290,8 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .greeting-body .hl3{color:var(--primary);font-weight:800;}
 .start-btn{width:100%;max-width:440px;padding:clamp(16px,4vmin,30px) 24px;background:var(--secondary);border:none;border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,2.6rem);color:var(--bg);cursor:pointer;transition:transform .12s,filter .12s;margin-top:clamp(6px,2vmin,20px);}
 .start-btn:active{transform:scale(.97);filter:brightness(.92);}
-.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 clamp(12px,3vmin,24px);gap:0;}
+.name-wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:0 clamp(12px,3vmin,24px);gap:0;justify-content:flex-end;}
+.name-header{flex-shrink:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.4vmin,14px);padding:clamp(10px,2vmin,24px) 0 clamp(6px,1vmin,12px);}
 .name-title{font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.5rem,5vmin,3.2rem);color:var(--secondary);text-align:center;line-height:1.1;}
 .name-display{width:100%;background:var(--surface);border:2.5px solid var(--border2);border-radius:var(--r);padding:clamp(8px,2vmin,18px) 20px;font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1.8rem,6vmin,4rem);height:clamp(64px,12vmin,108px);display:flex;align-items:center;letter-spacing:2px;cursor:text;flex-shrink:0;}
 .name-placeholder{color:var(--dim);font-family:var(--title);font-weight:var(--title-weight);font-size:inherit;letter-spacing:2px;}
@@ -576,23 +590,23 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
   return (
     <div className="screen">
       <div className="name-wrap">
-        <div style={{flex:1,minHeight:0}}/>
-        <div className="name-title">{title}</div>
-        <div style={{width:"100%",flexShrink:0}}>
-          <div ref={displayRef} className="name-display" onClick={handleDisplayClick}>
-            {name?(
-              <>
-                <span style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"inherit",color:"var(--secondary)",background:allSel?"var(--a-bold)":"transparent",borderRadius:allSel?"4px":undefined}}>{before}</span>
-                {!allSel&&<span className="text-cursor"/>}
-                <span style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"inherit",color:"var(--secondary)"}}>{after}</span>
-              </>
-            ):(
-              <><span className="text-cursor"/><span className="name-placeholder">Your name</span></>
-            )}
+        <div className="name-header">
+          <div className="name-title">{title}</div>
+          <div style={{width:"100%"}}>
+            <div ref={displayRef} className="name-display" onClick={handleDisplayClick}>
+              {name?(
+                <>
+                  <span style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"inherit",color:"var(--secondary)",background:allSel?"var(--a-bold)":"transparent",borderRadius:allSel?"4px":undefined}}>{before}</span>
+                  {!allSel&&<span className="text-cursor"/>}
+                  <span style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"inherit",color:"var(--secondary)"}}>{after}</span>
+                </>
+              ):(
+                <><span className="text-cursor"/><span className="name-placeholder">Your name</span></>
+              )}
+            </div>
+            {error&&<p className="name-error">{error}</p>}
           </div>
-          {error&&<p className="name-error">{error}</p>}
         </div>
-        <div style={{flex:1,minHeight:0}}/>
         <div className="name-keyboard-area">
           <Keyboard onChar={handleChar} onDelete={handleDelete} onDone={handleDone} isShift={isShift} onShiftPress={handleShiftPress} hideDone={true}/>
           <div className="name-action-row">
@@ -887,8 +901,8 @@ function NumberSelectionScreen({onGo,onHome,activeUser,appState,persist}){
   const[showCC,setShowCC]=useState(false);
   const saveNums=(l,h)=>persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,numberSettings:{lo:l,hi:h}}:u)});
   const saveS=p=>saveShared(appState,activeUser,p,persist);
-  const handleLo=e=>{const v=Math.min(Number(e.target.value),hi);setLo(v);saveNums(v,hi);};
-  const handleHi=e=>{const v=Math.max(Number(e.target.value),lo);setHi(v);saveNums(lo,v);};
+  const handleLo=e=>{const v=Math.min(Number(e.target.value),hi-5);setLo(v);saveNums(v,hi);};
+  const handleHi=e=>{const v=Math.max(Number(e.target.value),lo+5);setHi(v);saveNums(lo,v);};
   const total=hi-lo+1;
   const leftPct=(lo/100)*100;
   const rightPct=(hi/100)*100;
@@ -913,8 +927,8 @@ function NumberSelectionScreen({onGo,onHome,activeUser,appState,persist}){
         <div className="dual-slider" style={{width:"100%",maxWidth:560}}>
           <div className="slider-track"/>
           <div className="slider-fill" style={{left:`${leftPct}%`,right:`${100-rightPct}%`}}/>
-          <input type="range" min="0" max="100" value={lo} onChange={handleLo}/>
-          <input type="range" min="0" max="100" value={hi} onChange={handleHi}/>
+          <input type="range" min="0" max="100" value={lo} onChange={handleLo} style={{zIndex:lo>=50?3:1}}/>
+          <input type="range" min="0" max="100" value={hi} onChange={handleHi} style={{zIndex:lo>=50?1:3}}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",width:"100%",maxWidth:560,fontFamily:"var(--body)",fontWeight:700,color:"var(--secondary)",fontSize:clamp(Math.round(uiFP*.75),11,18)}}>
           <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
@@ -1060,7 +1074,7 @@ function PhonicsSelectionScreen({onGo,onHome,activeUser,appState,persist}){
           const splitAt=portrait?25:20;
           const before=phonicLetters.slice(0,splitAt);
           const after=phonicLetters.slice(splitAt);
-          const renderTile=l=>{const sel=selLetters.has(l);const isVowel=VOWELS.includes(l);return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH,borderColor:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--primary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--p-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{phonicsCase==="upper"?l:l.toLowerCase()}</button>;};
+          const renderTile=l=>{const sel=selLetters.has(l);const isVowel=VOWELS.includes(l);return <button key={l} className={`tile${sel?" sel":""}`} style={{fontSize:tileFontSz,width:tileH,height:tileH,borderColor:sel?(isVowel?"var(--accent)":"var(--secondary)"):"var(--border2)",color:sel?(isVowel?"var(--accent)":"var(--secondary)"):"var(--dim)",background:sel?(isVowel?"var(--a-mid)":"var(--s-mid)"):"var(--surface)"}} onClick={()=>toggleL(l)}>{phonicsCase==="upper"?l:l.toLowerCase()}</button>;};
           return <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},${tileH}px)`,gridAutoRows:tileH,gap:gap,maxWidth:gridW,justifyContent:"center"}}>
             {before.map(renderTile)}
             <div key="ctrl-case" className="tile case-tile" style={{fontSize:Math.round(tileFontSz*0.7),gridColumn:"span 2",height:tileH}} onClick={togglePhonicsCase}>
@@ -1270,8 +1284,8 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const saveMath=patch=>persist({...appState,users:appState.users.map(u=>u.name===activeUser?{...u,mathSettings:{...(u.mathSettings||{}),[modeId]:{...ms,...patch}}}:u)});
   const saveS=p=>saveShared(appState,activeUser,p,persist);
   useEffect(()=>{if(shared.cardCount===0)saveS({cardCount:20});},[]);
-  const handleLo=e=>{const v=Math.min(Number(e.target.value),hi);setLo(v);saveMath({lo:v});};
-  const handleHi=e=>{const v=Math.max(Number(e.target.value),lo);setHi(v);saveMath({hi:v});};
+  const handleLo=e=>{const v=Math.min(Number(e.target.value),hi-5);setLo(v);saveMath({lo:v});};
+  const handleHi=e=>{const v=Math.max(Number(e.target.value),lo+5);setHi(v);saveMath({hi:v});};
   const handleSingle=e=>{const v=Number(e.target.value);setHi(v);saveMath({hi:v});};
   const handleCCSave=cc=>{const v=cc===0?20:clamp(cc,5,25);saveS({cardCount:v});setShowCC(false);};
   const sliderMin={addition:1,subtraction:5,multiplication:0,division:2}[modeId];
@@ -1324,29 +1338,30 @@ function MathSelectionScreen({onGo,onHome,activeUser,appState,persist,modeId,tit
   const showShuffle=modeId==="multiplication"&&timesTable;
   const leftPct=isDual?((lo-sliderMin)/(sliderMax-sliderMin))*100:0;
   const rightPct=((hi-sliderMin)/(sliderMax-sliderMin))*100;
-  const optBtnStyle={padding:"clamp(12px,3vmin,20px) clamp(16px,4vmin,28px)",borderRadius:"var(--pill)",border:"2px solid var(--border2)",background:"var(--surface)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.05,color:"var(--dim)",cursor:"pointer",display:"flex",alignItems:"center",gap:8};
+  const optBtnStyle={padding:"clamp(10px,2.5vmin,16px) clamp(12px,3vmin,20px)",borderRadius:"var(--pill)",border:"2px solid var(--border2)",background:"var(--surface)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.05,color:"var(--dim)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,whiteSpace:"nowrap"};
   const optBtnActiveStyle={...optBtnStyle,background:"var(--a-mid)",borderColor:"var(--accent)",color:"var(--accent)"};
   return(
     <div className="screen">
       <div><SelectionHeader title={title} shared={{...shared,order:showShuffle?shared.order:"random"}} onToggleScored={()=>saveS({scored:!shared.scored})} onOpenCards={()=>setShowCC(true)} onOpenTimer={()=>setShowTimer(true)} onToggleOrder={showShuffle?()=>saveS({order:shared.order==="alpha"?"random":"alpha"}):()=>{}} uiFP={uiFP} pillH={pH} pillW={pW} iconSz={iSz} hideShuffle={!showShuffle}/></div>
-      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"clamp(10px,2.5vmin,24px)",padding:"clamp(12px,3vmin,32px) clamp(16px,4vmin,48px)",overflowY:"auto"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"clamp(6px,1.5vmin,14px)",padding:"clamp(8px,2vmin,20px) clamp(16px,4vmin,48px)",overflowY:"auto",minHeight:0}}>
         <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:"clamp(1.2rem,3.5vmin,1.8rem)",color:"var(--dim)",textAlign:"center"}}>{question}</div>
         <div className="num-range-display">{isDual?`${lo} \u2013 ${hi}`:hi}</div>
         <div className="dual-slider" style={{width:"100%",maxWidth:560}}>
           <div className="slider-track"/>
           <div className="slider-fill" style={{left:`${leftPct}%`,right:`${100-rightPct}%`}}/>
-          {isDual&&<input type="range" min={sliderMin} max={sliderMax} value={lo} onChange={handleLo}/>}
-          <input type="range" min={sliderMin} max={sliderMax} value={hi} onChange={isDual?handleHi:handleSingle}/>
+          {isDual&&<input type="range" min={sliderMin} max={sliderMax} value={lo} onChange={handleLo} style={{zIndex:lo>=(sliderMin+sliderMax)/2?3:1}}/>}
+          <input type="range" min={sliderMin} max={sliderMax} value={hi} onChange={isDual?handleHi:handleSingle} style={isDual?{zIndex:lo>=(sliderMin+sliderMax)/2?1:3}:undefined}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",width:"100%",maxWidth:560,fontFamily:"var(--body)",fontWeight:700,color:"var(--secondary)",fontSize:clamp(Math.round(uiFP*.75),11,18)}}>
           <span>{sliderMin}</span><span>{Math.floor((sliderMax-sliderMin)*.25+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.5+sliderMin)}</span><span>{Math.floor((sliderMax-sliderMin)*.75+sliderMin)}</span><span>{sliderMax}</span>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center"}}>
-          <div style={{fontFamily:"var(--body)",fontWeight:600,fontSize:uiFP*.8,color:"var(--dim)"}}>Examples:</div>
-          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.5,color:"var(--accent)"}}>{ex1}</div>
-          <div style={{fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.5,color:"var(--accent)"}}>{ex2}</div>
+        <div style={{flex:"1 1 clamp(8px,2vmin,20px)",minHeight:4}}/>
+        <div style={{display:"flex",gap:clamp(8,vminPx(2),16),justifyContent:"center",width:"100%",maxWidth:560}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid var(--border2)",borderRadius:"var(--r)",padding:"clamp(6px,1.5vmin,12px) clamp(8px,2vmin,16px)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.3,color:"var(--accent)"}}>{ex1}</div>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid var(--border2)",borderRadius:"var(--r)",padding:"clamp(6px,1.5vmin,12px) clamp(8px,2vmin,16px)",fontFamily:"var(--title)",fontWeight:"var(--title-weight)",fontSize:uiFP*1.3,color:"var(--accent)"}}>{ex2}</div>
         </div>
-        <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{flex:"1 1 clamp(8px,2vmin,20px)",minHeight:4}}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:clamp(6,vminPx(1.2),10),width:"100%",maxWidth:560}}>
           <button style={alg!=="Off"?optBtnActiveStyle:optBtnStyle} onClick={()=>setShowAlgPicker(true)}>Algebra: {alg}</button>
           {modeId==="subtraction"&&<button style={allowNeg?optBtnActiveStyle:optBtnStyle} onClick={()=>{setAllowNeg(!allowNeg);saveMath({allowNeg:!allowNeg});}}>Negatives: {allowNeg?"On":"Off"}</button>}
           {modeId==="multiplication"&&<button style={timesTable?optBtnActiveStyle:optBtnStyle} onClick={()=>{const v=!timesTable;setTimesTable(v);saveMath({timesTable:v});if(v&&hi>12)setHi(12);}}>Times Table: {timesTable?"On":"Off"}</button>}
