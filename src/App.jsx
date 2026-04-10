@@ -298,7 +298,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 .text-cursor{display:inline-block;width:3px;height:.85em;background:var(--secondary);margin-left:1px;vertical-align:middle;animation:blink 1s step-end infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .name-error{color:var(--red);font-size:clamp(.85rem,2vmin,1.1rem);font-weight:700;align-self:flex-start;width:100%;padding-left:4px;}
-.name-keyboard-area{display:flex;flex-direction:column;justify-content:flex-end;width:100%;margin-top:auto;min-height:0;}
+.name-keyboard-area{display:flex;flex-direction:column;justify-content:flex-end;width:100%;}
 .name-action-row{display:flex;flex-direction:row-reverse;gap:10px;width:100%;flex-shrink:0;margin-top:clamp(6px,1.5vmin,14px);margin-bottom:clamp(4px,1vmin,10px);}
 .name-done-btn{flex:1;padding:clamp(12px,3vmin,20px) 16px;background:var(--g-soft);border:2px solid var(--green);border-radius:var(--pill);font-family:var(--title);font-weight:var(--title-weight);font-size:clamp(1rem,3.5vmin,1.8rem);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;opacity:1;}
 .name-done-btn svg,.name-done-btn span{opacity:1;}
@@ -538,9 +538,14 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
   const [isShift, setIsShift] = useState(true);
   const [error,   setError]   = useState("");
   const [allSel,  setAllSel]  = useState(initialName.length>0);
+  const [compact, setCompact] = useState(()=>{ const vh=window.innerHeight,vw=window.innerWidth; return .25*vh+.3*vw>vh; });
   const displayRef = useRef(null);
 
   useEffect(()=>{ if(initialName.length>0){ setCursor(0); setAllSel(true); } },[]);
+  useEffect(()=>{
+    const check=()=>{ const vh=window.innerHeight,vw=window.innerWidth; setCompact(.25*vh+.3*vw>vh); };
+    window.addEventListener("resize",check); return ()=>window.removeEventListener("resize",check);
+  },[]);
 
   const handleShiftPress = useCallback(()=>setIsShift(s=>!s),[]);
 
@@ -607,7 +612,7 @@ function NameEntryScreen({ onComplete, onCancel, existingNames=[], initialName="
             {error&&<p className="name-error">{error}</p>}
           </div>
         </div>
-        <div className="name-keyboard-area">
+        <div className="name-keyboard-area" style={compact?{flex:1,minHeight:0}:{marginTop:"auto"}}>
           <Keyboard onChar={handleChar} onDelete={handleDelete} onDone={handleDone} isShift={isShift} onShiftPress={handleShiftPress} hideDone={true}/>
           <div className="name-action-row">
             <button className="name-done-btn" onClick={handleDone}><Ico.check sz={18} c="var(--green)"/>Done</button>
